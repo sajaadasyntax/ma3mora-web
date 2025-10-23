@@ -399,7 +399,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                   variant="secondary"
                   onClick={() => {
                     setShowPaymentForm(false);
-                    setPaymentData({ amount: '', method: 'CASH', notes: '' });
+                    setPaymentData({ amount: '', method: 'CASH', notes: '', receiptUrl: '' });
                   }}
                   disabled={submittingPayment}
                 >
