@@ -16,6 +16,7 @@ import {
   paymentMethodLabels,
   sectionLabels,
 } from '@/lib/utils';
+import { generateInvoicePDF } from '@/lib/pdfUtils';
 
 interface PageProps {
   params: {
@@ -36,6 +37,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
     amount: '',
     method: 'CASH',
     notes: '',
+    receiptUrl: '',
   });
 
   useEffect(() => {
@@ -80,9 +82,10 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
         amount: parseFloat(paymentData.amount),
         method: paymentData.method,
         notes: paymentData.notes,
+        receiptUrl: paymentData.receiptUrl,
       });
       setShowPaymentForm(false);
-      setPaymentData({ amount: '', method: 'CASH', notes: '' });
+      setPaymentData({ amount: '', method: 'CASH', notes: '', receiptUrl: '' });
       await loadInvoice();
       alert('تم تسجيل الدفعة بنجاح');
     } catch (error: any) {
@@ -155,15 +158,39 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
       label: 'طريقة الدفع',
       render: (value: string) => paymentMethodLabels[value] || value,
     },
+    {
+      key: 'receiptUrl',
+      label: 'إيصال الدفع',
+      render: (value: string, row: any) => {
+        if (row.method === 'CASH') return '-';
+        if (!value) return 'غير متوفر';
+        return (
+          <a 
+            href={value} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            عرض الإيصال
+          </a>
+        );
+      },
+    },
     { key: 'notes', label: 'ملاحظات' },
   ];
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <div>
+        <div className="flex gap-2">
           <Button variant="secondary" onClick={() => router.push('/dashboard/sales')}>
             ← رجوع
+          </Button>
+          <Button
+            onClick={() => generateInvoicePDF(invoice)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            📄 تصدير PDF
           </Button>
         </div>
       </div>
@@ -341,10 +368,20 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                   value={paymentData.method}
                   onChange={(e) => setPaymentData({ ...paymentData, method: e.target.value })}
                 >
-                  <option value="CASH">نقدي</option>
-                  <option value="BANK">بنك</option>
+                  <option value="CASH">كاش</option>
+                  <option value="BANK">بنكك</option>
+                  <option value="BANK_NILE">بنك النيل</option>
                 </select>
               </div>
+              {paymentData.method !== 'CASH' && (
+                <Input
+                  label="رابط إيصال الدفع (مطلوب للدفع غير النقدي)"
+                  value={paymentData.receiptUrl}
+                  onChange={(e) => setPaymentData({ ...paymentData, receiptUrl: e.target.value })}
+                  placeholder="أدخل رابط إيصال الدفع"
+                  required
+                />
+              )}
               <Input
                 label="ملاحظات (اختياري)"
                 value={paymentData.notes}

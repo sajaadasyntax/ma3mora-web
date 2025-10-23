@@ -13,6 +13,7 @@ import {
   procOrderStatusLabels,
   sectionLabels,
 } from '@/lib/utils';
+import { generateProcOrderPDF } from '@/lib/pdfUtils';
 
 interface PageProps {
   params: {
@@ -127,9 +128,15 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <div>
+        <div className="flex gap-2">
           <Button variant="secondary" onClick={() => router.push('/dashboard/procurement')}>
             ← رجوع
+          </Button>
+          <Button
+            onClick={() => generateProcOrderPDF(order)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            📄 تصدير PDF
           </Button>
         </div>
       </div>

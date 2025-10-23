@@ -202,7 +202,8 @@ export default function NewSalesInvoicePage() {
               onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
               options={[
                 { value: 'CASH', label: 'كاش' },
-                { value: 'BANK', label: 'بنك' },
+                { value: 'BANK', label: 'بنكك' },
+                { value: 'BANK_NILE', label: 'بنك النيل' },
               ]}
             />
           </div>

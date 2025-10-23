@@ -7,6 +7,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { formatCurrency } from '@/lib/utils';
+import { generateBalanceSheetPDF } from '@/lib/pdfUtils';
 
 export default function BalanceSheetPage() {
   const router = useRouter();
@@ -89,12 +90,20 @@ export default function BalanceSheetPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">الميزانية وقائمة الدخل</h1>
-        <Button
-          variant="secondary"
-          onClick={() => router.push('/dashboard/accounting')}
-        >
-          العودة للمحاسبة
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => generateBalanceSheetPDF(balance)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            📄 تصدير PDF
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => router.push('/dashboard/accounting')}
+          >
+            العودة للمحاسبة
+          </Button>
+        </div>
       </div>
 
       {/* Income Statement */}
