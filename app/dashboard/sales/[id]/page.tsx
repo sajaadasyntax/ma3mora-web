@@ -348,9 +348,9 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                   )}
                 </>
               )}
-            </div>
+             </div>
 
-          {!isAuditor && showPaymentForm && (
+             {!isAuditor && showPaymentForm && (
             <form onSubmit={handlePayment} className="mt-4 p-4 border rounded-lg bg-gray-50">
               <h4 className="font-semibold mb-3">تسجيل دفعة جديدة</h4>
               <Input
@@ -408,10 +408,11 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                 >
                   إلغاء
                 </Button>
-              </div>
-            </form>
-          )}
-        </Card>
+               </div>
+             </form>
+             )}
+           </Card>
+         )}
 
         {invoice.notes && (
           <Card>
