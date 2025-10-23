@@ -17,6 +17,7 @@ import {
   sectionLabels,
 } from '@/lib/utils';
 import { generateInvoicePDF } from '@/lib/pdfUtils';
+import { useIsAuditor } from '@/lib/auditorUtils';
 
 interface PageProps {
   params: {
@@ -39,6 +40,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
     notes: '',
     receiptUrl: '',
   });
+  const isAuditor = useIsAuditor();
 
   useEffect(() => {
     loadInvoice();
@@ -297,7 +299,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
         )}
 
         {/* Actions */}
-        {user?.role === 'ACCOUNTANT' && !invoice.paymentConfirmed && (
+        {!isAuditor && user?.role === 'ACCOUNTANT' && !invoice.paymentConfirmed && (
           <Card>
             <h3 className="text-xl font-semibold mb-4">تأكيد الدفع</h3>
             <p className="text-gray-600 mb-4">
@@ -312,42 +314,43 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
           </Card>
         )}
 
-        <Card>
-          <h3 className="text-xl font-semibold mb-4">الإجراءات</h3>
-          <div className="flex gap-4">
-            {(user?.role === 'ACCOUNTANT' || user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY') &&
-              invoice.paymentStatus !== 'PAID' &&
-              remainingAmount > 0 && (
-                <Button 
-                  onClick={() => setShowPaymentForm(!showPaymentForm)}
-                  disabled={submittingPayment}
-                >
-                  {showPaymentForm ? 'إلغاء' : 'تسجيل دفعة'}
-                </Button>
-              )}
-
-            {user?.role === 'INVENTORY' && invoice.deliveryStatus === 'NOT_DELIVERED' && (
-              <>
-                {!invoice.paymentConfirmed ? (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                    <p className="text-orange-800 font-semibold">⏳ في انتظار تأكيد الدفع</p>
-                    <p className="text-orange-700 text-sm mt-1">
-                      لا يمكن تسليم البضاعة قبل تأكيد المحاسب للدفع
-                    </p>
-                  </div>
-                ) : (
+        {!isAuditor && (
+          <Card>
+            <h3 className="text-xl font-semibold mb-4">الإجراءات</h3>
+            <div className="flex gap-4">
+              {(user?.role === 'ACCOUNTANT' || user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY') &&
+                invoice.paymentStatus !== 'PAID' &&
+                remainingAmount > 0 && (
                   <Button 
-                    onClick={handleDeliver}
-                    disabled={delivering}
+                    onClick={() => setShowPaymentForm(!showPaymentForm)}
+                    disabled={submittingPayment}
                   >
-                    {delivering ? 'جاري التسليم...' : 'تسليم الفاتورة'}
+                    {showPaymentForm ? 'إلغاء' : 'تسجيل دفعة'}
                   </Button>
                 )}
-              </>
-            )}
-          </div>
 
-          {showPaymentForm && (
+              {user?.role === 'INVENTORY' && invoice.deliveryStatus === 'NOT_DELIVERED' && (
+                <>
+                  {!invoice.paymentConfirmed ? (
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <p className="text-orange-800 font-semibold">⏳ في انتظار تأكيد الدفع</p>
+                      <p className="text-orange-700 text-sm mt-1">
+                        لا يمكن تسليم البضاعة قبل تأكيد المحاسب للدفع
+                      </p>
+                    </div>
+                  ) : (
+                    <Button 
+                      onClick={handleDeliver}
+                      disabled={delivering}
+                    >
+                      {delivering ? 'جاري التسليم...' : 'تسليم الفاتورة'}
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+
+          {!isAuditor && showPaymentForm && (
             <form onSubmit={handlePayment} className="mt-4 p-4 border rounded-lg bg-gray-50">
               <h4 className="font-semibold mb-3">تسجيل دفعة جديدة</h4>
               <Input

@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import Card from '@/components/Card';
 import { formatCurrency } from '@/lib/utils';
+import { useIsAuditor } from '@/lib/auditorUtils';
 
 export default function AccountingPage() {
   const [balance, setBalance] = useState<any>(null);
   const [balanceStatus, setBalanceStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const isAuditor = useIsAuditor();
 
   useEffect(() => {
     loadData();
@@ -124,25 +126,27 @@ export default function AccountingPage() {
           </div>
         </Card>
 
-        <Card title="الإجراءات">
-          <div className="space-y-2">
-            {balanceStatus?.isOpen ? (
-              <a
-                href="/dashboard/accounting/expenses/new"
-                className="block w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-center"
-              >
-                إضافة منصرف
-              </a>
-            ) : (
-              <a
-                href="/dashboard/accounting/close-balance"
-                className="block w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-center"
-              >
-                فتح حساب جديد
-              </a>
-            )}
-          </div>
-        </Card>
+        {!isAuditor && (
+          <Card title="الإجراءات">
+            <div className="space-y-2">
+              {balanceStatus?.isOpen ? (
+                <a
+                  href="/dashboard/accounting/expenses/new"
+                  className="block w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-center"
+                >
+                  إضافة منصرف
+                </a>
+              ) : (
+                <a
+                  href="/dashboard/accounting/close-balance"
+                  className="block w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-center"
+                >
+                  فتح حساب جديد
+                </a>
+              )}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
