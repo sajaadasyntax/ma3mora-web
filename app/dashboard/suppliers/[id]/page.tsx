@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import Table from '@/components/Table';
+import { formatCurrency, formatDateTime, procOrderStatusLabels, sectionLabels } from '@/lib/utils';
 
 interface PageProps {
   params: {
@@ -15,31 +17,107 @@ interface PageProps {
 export default function SupplierDetailPage({ params }: PageProps) {
   const router = useRouter();
   const [supplier, setSupplier] = useState<any>(null);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadSupplier();
+    loadData();
   }, [params.id]);
 
-  const loadSupplier = async () => {
+  const loadData = async () => {
     try {
-      // For now, we'll get all suppliers and find the one we need
-      // You may want to add a getSupplier(id) API endpoint
-      const suppliers = await api.getSuppliers();
+      const [suppliers, ordersData] = await Promise.all([
+        api.getSuppliers(),
+        api.getSupplierOrders(params.id),
+      ]);
+      
       const found = suppliers.find((s: any) => s.id === params.id);
       if (found) {
         setSupplier(found);
+        setOrders(ordersData);
       } else {
         throw new Error('المورد غير موجود');
       }
     } catch (error) {
-      console.error('Error loading supplier:', error);
+      console.error('Error loading data:', error);
       alert('فشل تحميل بيانات المورد');
       router.push('/dashboard/suppliers');
     } finally {
       setLoading(false);
     }
   };
+
+  // Calculate statistics
+  const calculateStats = () => {
+    const totalOrders = orders.length;
+    const pendingOrders = orders.filter(o => o.status === 'CREATED').length;
+    const partialOrders = orders.filter(o => o.status === 'PARTIAL').length;
+    const completedOrders = orders.filter(o => o.status === 'RECEIVED').length;
+    const cancelledOrders = orders.filter(o => o.status === 'CANCELLED').length;
+    
+    const totalValue = orders.reduce((sum, order) => sum + parseFloat(order.total), 0);
+    const pendingValue = orders
+      .filter(o => o.status === 'CREATED' || o.status === 'PARTIAL')
+      .reduce((sum, order) => sum + parseFloat(order.total), 0);
+
+    return {
+      totalOrders,
+      pendingOrders,
+      partialOrders,
+      completedOrders,
+      cancelledOrders,
+      totalValue,
+      pendingValue,
+    };
+  };
+
+  const stats = calculateStats();
+
+  const orderColumns = [
+    { key: 'orderNumber', label: 'رقم الأمر' },
+    { key: 'inventory', label: 'المخزن', render: (value: any) => value.name },
+    { key: 'section', label: 'القسم', render: (value: any) => sectionLabels[value] },
+    {
+      key: 'total',
+      label: 'القيمة الإجمالية',
+      render: (value: any) => formatCurrency(value),
+    },
+    {
+      key: 'status',
+      label: 'الحالة',
+      render: (value: any) => (
+        <span
+          className={`inline-block px-2 py-1 rounded text-sm ${
+            value === 'RECEIVED'
+              ? 'bg-green-100 text-green-800'
+              : value === 'PARTIAL'
+              ? 'bg-yellow-100 text-yellow-800'
+              : value === 'CANCELLED'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-blue-100 text-blue-800'
+          }`}
+        >
+          {procOrderStatusLabels[value]}
+        </span>
+      ),
+    },
+    {
+      key: 'createdAt',
+      label: 'تاريخ الإنشاء',
+      render: (value: string) => formatDateTime(value),
+    },
+    {
+      key: 'paymentConfirmed',
+      label: 'تأكيد الدفع',
+      render: (value: boolean) => (
+        <span className={`inline-block px-2 py-1 rounded text-sm ${
+          value ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+        }`}>
+          {value ? '✓ مؤكد' : '⏳ في الانتظار'}
+        </span>
+      ),
+    },
+  ];
 
   if (loading) {
     return <div className="text-center py-8">جاري التحميل...</div>;
@@ -83,6 +161,44 @@ export default function SupplierDetailPage({ params }: PageProps) {
               </p>
             </div>
           </div>
+        </Card>
+
+        {/* Statistics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+            <h3 className="text-lg font-semibold mb-2">إجمالي الأوامر</h3>
+            <p className="text-3xl font-bold">{stats.totalOrders}</p>
+            <p className="text-sm mt-2">إجمالي القيمة: {formatCurrency(stats.totalValue)}</p>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+            <h3 className="text-lg font-semibold mb-2">الأوامر المعلقة</h3>
+            <p className="text-3xl font-bold">{stats.pendingOrders + stats.partialOrders}</p>
+            <p className="text-sm mt-2">قيمة معلقة: {formatCurrency(stats.pendingValue)}</p>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+            <h3 className="text-lg font-semibold mb-2">الأوامر المكتملة</h3>
+            <p className="text-3xl font-bold">{stats.completedOrders}</p>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+            <h3 className="text-lg font-semibold mb-2">الأوامر الجزئية</h3>
+            <p className="text-3xl font-bold">{stats.partialOrders}</p>
+            <p className="text-sm mt-2">تحتاج متابعة</p>
+          </Card>
+        </div>
+
+        {/* Orders Table */}
+        <Card>
+          <h3 className="text-xl font-semibold mb-4">أوامر الشراء</h3>
+          {orders.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              لا توجد أوامر شراء لهذا المورد
+            </div>
+          ) : (
+            <Table columns={orderColumns} data={orders} />
+          )}
         </Card>
       </div>
     </div>

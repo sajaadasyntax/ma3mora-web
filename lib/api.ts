@@ -91,6 +91,8 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  getSupplierOrders: (supplierId: string) => fetchAPI(`/suppliers/${supplierId}/orders`),
+
   // Sales
   getSalesInvoices: (params?: any) =>
     fetchAPI('/sales/invoices', { params }),
