@@ -180,6 +180,9 @@ export const api = {
   getBalanceStatus: () =>
     fetchAPI('/accounting/balance/status'),
   
+  getBalanceSessions: () =>
+    fetchAPI('/accounting/balance/sessions'),
+  
   getAuditLogs: (params?: any) =>
     fetchAPI('/accounting/audit', { params }),
 };

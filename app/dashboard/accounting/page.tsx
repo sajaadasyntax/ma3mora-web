@@ -7,18 +7,23 @@ import { formatCurrency } from '@/lib/utils';
 
 export default function AccountingPage() {
   const [balance, setBalance] = useState<any>(null);
+  const [balanceStatus, setBalanceStatus] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadBalance();
+    loadData();
   }, []);
 
-  const loadBalance = async () => {
+  const loadData = async () => {
     try {
-      const data = await api.getBalanceSummary();
-      setBalance(data);
+      const [balanceData, statusData] = await Promise.all([
+        api.getBalanceSummary(),
+        api.getBalanceStatus(),
+      ]);
+      setBalance(balanceData);
+      setBalanceStatus(statusData);
     } catch (error) {
-      console.error('Error loading balance:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -82,6 +87,12 @@ export default function AccountingPage() {
               📥 إقفال الحساب وتحميل التقرير
             </a>
             <a
+              href="/dashboard/accounting/balance-sessions"
+              className="block px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white rounded text-center font-semibold"
+            >
+              📊 جلسات الميزانية السابقة
+            </a>
+            <a
               href="/dashboard/accounting/expenses"
               className="block px-4 py-2 bg-orange-50 hover:bg-orange-100 rounded"
             >
@@ -115,12 +126,21 @@ export default function AccountingPage() {
 
         <Card title="الإجراءات">
           <div className="space-y-2">
-            <a
-              href="/dashboard/accounting/expenses/new"
-              className="block w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-center"
-            >
-              إضافة منصرف
-            </a>
+            {balanceStatus?.isOpen ? (
+              <a
+                href="/dashboard/accounting/expenses/new"
+                className="block w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-center"
+              >
+                إضافة منصرف
+              </a>
+            ) : (
+              <a
+                href="/dashboard/accounting/close-balance"
+                className="block w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-center"
+              >
+                فتح حساب جديد
+              </a>
+            )}
           </div>
         </Card>
       </div>
