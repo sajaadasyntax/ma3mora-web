@@ -92,10 +92,13 @@ export default function BalanceSheetPage() {
         <h1 className="text-3xl font-bold text-gray-900">الميزانية وقائمة الدخل</h1>
         <div className="flex gap-2">
           <Button
-            onClick={() => generateBalanceSheetPDF(balance)}
+            onClick={() => {
+              alert('ملاحظة: بعد فتح نافذة الطباعة، انتظر 2-3 ثواني لتحميل الخطوط العربية بشكل صحيح قبل الطباعة أو الحفظ كـ PDF');
+              generateBalanceSheetPDF(balance);
+            }}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            📄 تصدير PDF
+            📄 طباعة / تصدير PDF
           </Button>
           <Button
             variant="secondary"

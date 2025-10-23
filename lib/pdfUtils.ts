@@ -1,4 +1,4 @@
-// PDF generation utilities for Arabic text support
+// Enhanced PDF generation utilities for Arabic text support
 export function generatePDF(htmlContent: string, filename: string) {
   // Create a new window for printing
   const printWindow = window.open('', '_blank');
@@ -12,10 +12,8 @@ export function generatePDF(htmlContent: string, filename: string) {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${filename}</title>
-      <link rel="preconnect" href="https://fonts.googleapis.com">
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
       <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
         
         * {
           margin: 0;
@@ -24,7 +22,7 @@ export function generatePDF(htmlContent: string, filename: string) {
         }
         
         body {
-          font-family: 'Noto Sans Arabic', 'Arial Unicode MS', 'Tahoma', Arial, sans-serif;
+          font-family: 'Noto Sans Arabic', 'Segoe UI', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
           direction: rtl;
           text-align: right;
           line-height: 1.6;
@@ -33,6 +31,8 @@ export function generatePDF(htmlContent: string, filename: string) {
           padding: 20px;
           font-feature-settings: 'liga' 1, 'calt' 1;
           text-rendering: optimizeLegibility;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
         }
         
         .header {
@@ -162,11 +162,14 @@ export function generatePDF(htmlContent: string, filename: string) {
 
   printWindow.document.close();
   
-  // Wait for fonts to load, then trigger print
+  // Wait for content to load, then trigger print
   printWindow.onload = () => {
-    // Wait for fonts to load
-    if ('fonts' in document) {
-      document.fonts.ready.then(() => {
+    // Force a reflow to ensure fonts are applied
+    printWindow.document.body.offsetHeight;
+    
+    // Wait for fonts to load completely
+    if (printWindow.document.fonts) {
+      printWindow.document.fonts.ready.then(() => {
         setTimeout(() => {
           printWindow.print();
         }, 1000);
@@ -174,7 +177,7 @@ export function generatePDF(htmlContent: string, filename: string) {
     } else {
       setTimeout(() => {
         printWindow.print();
-      }, 1500);
+      }, 3000);
     }
   };
 }
