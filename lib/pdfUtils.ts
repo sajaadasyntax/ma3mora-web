@@ -199,82 +199,113 @@ export function generateBalanceSheetPDF(balanceData: any) {
     </div>
 
     <div class="section">
+      <h2>معلومات التقرير</h2>
+      <table>
+        <tr>
+          <th>تاريخ التقرير</th>
+          <td>${currentDate}</td>
+          <th>إجمالي المبيعات</th>
+          <td>${formatCurrency(balanceData.sales.total)}</td>
+        </tr>
+        <tr>
+          <th>المحصل فعلياً</th>
+          <td>${formatCurrency(balanceData.sales.received)}</td>
+          <th>المتبقي (ذمم)</th>
+          <td>${formatCurrency(balanceData.sales.debt)}</td>
+        </tr>
+        <tr>
+          <th>تكلفة المشتريات</th>
+          <td>${formatCurrency(balanceData.procurement.total)}</td>
+          <th>المنصرفات</th>
+          <td>${formatCurrency(balanceData.expenses.total)}</td>
+        </tr>
+        <tr>
+          <th>الرصيد النقدي</th>
+          <td>${formatCurrency(balanceData.balance.net)}</td>
+          <th>رأس المال الافتتاحي</th>
+          <td>${formatCurrency(balanceData.balance.opening)}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="section">
       <h2>قائمة الدخل</h2>
-      
-      <h3>الإيرادات</h3>
-      <div class="summary">
-        <div class="summary-row">
-          <span>إجمالي المبيعات:</span>
-          <span class="amount">${formatCurrency(balanceData.sales.total)}</span>
-        </div>
-        <div class="summary-row">
-          <span>المحصل فعلياً:</span>
-          <span class="amount positive">${formatCurrency(balanceData.sales.received)}</span>
-        </div>
-        <div class="summary-row">
-          <span>المتبقي (ذمم):</span>
-          <span class="amount">${formatCurrency(balanceData.sales.debt)}</span>
-        </div>
-      </div>
-
-      <h3>التكاليف</h3>
-      <div class="summary">
-        <div class="summary-row">
-          <span>تكلفة المشتريات:</span>
-          <span class="amount">${formatCurrency(balanceData.procurement.total)}</span>
-        </div>
-        <div class="summary-row">
-          <span>المنصرفات:</span>
-          <span class="amount">${formatCurrency(balanceData.expenses.total)}</span>
-        </div>
-        <div class="summary-row total">
-          <span>إجمالي التكاليف:</span>
-          <span class="amount">${formatCurrency(parseFloat(balanceData.procurement.total) + parseFloat(balanceData.expenses.total))}</span>
-        </div>
-      </div>
-
-      <div class="summary">
-        <div class="summary-row total">
-          <span>${profit >= 0 ? 'صافي الربح' : 'صافي الخسارة'}:</span>
-          <span class="amount ${profit >= 0 ? 'positive' : 'negative'}">${formatCurrency(Math.abs(profit))}</span>
-        </div>
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>البند</th>
+            <th>المبلغ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>إجمالي المبيعات</td>
+            <td>${formatCurrency(balanceData.sales.total)}</td>
+          </tr>
+          <tr>
+            <td>المحصل فعلياً</td>
+            <td>${formatCurrency(balanceData.sales.received)}</td>
+          </tr>
+          <tr>
+            <td>المتبقي (ذمم)</td>
+            <td>${formatCurrency(balanceData.sales.debt)}</td>
+          </tr>
+          <tr>
+            <td>تكلفة المشتريات</td>
+            <td>${formatCurrency(balanceData.procurement.total)}</td>
+          </tr>
+          <tr>
+            <td>المنصرفات</td>
+            <td>${formatCurrency(balanceData.expenses.total)}</td>
+          </tr>
+          <tr>
+            <td>إجمالي التكاليف</td>
+            <td>${formatCurrency(parseFloat(balanceData.procurement.total) + parseFloat(balanceData.expenses.total))}</td>
+          </tr>
+          <tr>
+            <td><strong>${profit >= 0 ? 'صافي الربح' : 'صافي الخسارة'}</strong></td>
+            <td><strong>${formatCurrency(Math.abs(profit))}</strong></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="section">
       <h2>الميزانية</h2>
-      
-      <h3>الأصول</h3>
-      <div class="summary">
-        <div class="summary-row">
-          <span>الرصيد الصافي (نقد):</span>
-          <span class="amount">${formatCurrency(balanceData.balance.net)}</span>
-        </div>
-        <div class="summary-row">
-          <span>ذمم مدينة (عملاء):</span>
-          <span class="amount">${formatCurrency(balanceData.sales.debt)}</span>
-        </div>
-        <div class="summary-row total">
-          <span>إجمالي الأصول:</span>
-          <span class="amount">${formatCurrency(parseFloat(balanceData.balance.net) + parseFloat(balanceData.sales.debt))}</span>
-        </div>
-      </div>
-
-      <h3>حقوق الملكية</h3>
-      <div class="summary">
-        <div class="summary-row">
-          <span>رأس المال الافتتاحي:</span>
-          <span class="amount">${formatCurrency(balanceData.balance.opening)}</span>
-        </div>
-        <div class="summary-row">
-          <span>${profit >= 0 ? 'الأرباح المحتجزة' : 'الخسائر المتراكمة'}:</span>
-          <span class="amount ${profit >= 0 ? 'positive' : 'negative'}">${formatCurrency(Math.abs(profit))}</span>
-        </div>
-        <div class="summary-row total">
-          <span>إجمالي حقوق الملكية:</span>
-          <span class="amount">${formatCurrency(parseFloat(balanceData.balance.opening) + profit)}</span>
-        </div>
-      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>البند</th>
+            <th>المبلغ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>الرصيد الصافي (نقد)</td>
+            <td>${formatCurrency(balanceData.balance.net)}</td>
+          </tr>
+          <tr>
+            <td>ذمم مدينة (عملاء)</td>
+            <td>${formatCurrency(balanceData.sales.debt)}</td>
+          </tr>
+          <tr>
+            <td><strong>إجمالي الأصول</strong></td>
+            <td><strong>${formatCurrency(parseFloat(balanceData.balance.net) + parseFloat(balanceData.sales.debt))}</strong></td>
+          </tr>
+          <tr>
+            <td>رأس المال الافتتاحي</td>
+            <td>${formatCurrency(balanceData.balance.opening)}</td>
+          </tr>
+          <tr>
+            <td>${profit >= 0 ? 'الأرباح المحتجزة' : 'الخسائر المتراكمة'}</td>
+            <td>${formatCurrency(Math.abs(profit))}</td>
+          </tr>
+          <tr>
+            <td><strong>إجمالي حقوق الملكية</strong></td>
+            <td><strong>${formatCurrency(parseFloat(balanceData.balance.opening) + profit)}</strong></td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="footer">
@@ -635,7 +666,7 @@ export function generateLiquidCashPDF(liquidData: any) {
 // Helper function to format currency
 function formatCurrency(amount: number | string): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat('ar-SD', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'SDG',
     minimumFractionDigits: 0,

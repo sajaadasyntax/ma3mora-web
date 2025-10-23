@@ -168,6 +168,18 @@ export const api = {
   getLiquidCash: (params?: any) =>
     fetchAPI('/accounting/liquid-cash', { params }),
   
+  closeBalance: () =>
+    fetchAPI('/accounting/balance/close', { method: 'POST' }),
+  
+  openBalance: (data: any) =>
+    fetchAPI('/accounting/balance/open', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  getBalanceStatus: () =>
+    fetchAPI('/accounting/balance/status'),
+  
   getAuditLogs: (params?: any) =>
     fetchAPI('/accounting/audit', { params }),
 };

@@ -98,7 +98,7 @@ export default function BalanceSheetPage() {
             }}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            📄 طباعة / تصدير PDF
+            📄 تصدير PDF
           </Button>
           <Button
             variant="secondary"
