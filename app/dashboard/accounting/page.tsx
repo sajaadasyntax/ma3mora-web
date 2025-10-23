@@ -70,6 +70,12 @@ export default function AccountingPage() {
               📊 الميزانية وقائمة الدخل
             </a>
             <a
+              href="/dashboard/accounting/liquid-cash"
+              className="block px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded text-center font-semibold"
+            >
+              💰 التقرير النقدي السائل
+            </a>
+            <a
               href="/dashboard/accounting/close-balance"
               className="block px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded text-center font-semibold"
             >

@@ -165,6 +165,9 @@ export const api = {
   getBalanceSummary: (params?: any) =>
     fetchAPI('/accounting/balance/summary', { params }),
   
+  getLiquidCash: (params?: any) =>
+    fetchAPI('/accounting/liquid-cash', { params }),
+  
   getAuditLogs: (params?: any) =>
     fetchAPI('/accounting/audit', { params }),
 };

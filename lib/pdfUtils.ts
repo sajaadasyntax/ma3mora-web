@@ -12,8 +12,10 @@ export function generatePDF(htmlContent: string, filename: string) {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>${filename}</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
         
         * {
           margin: 0;
@@ -22,13 +24,15 @@ export function generatePDF(htmlContent: string, filename: string) {
         }
         
         body {
-          font-family: 'Noto Sans Arabic', Arial, sans-serif;
+          font-family: 'Noto Sans Arabic', 'Arial Unicode MS', 'Tahoma', Arial, sans-serif;
           direction: rtl;
           text-align: right;
           line-height: 1.6;
           color: #333;
           background: white;
           padding: 20px;
+          font-feature-settings: 'liga' 1, 'calt' 1;
+          text-rendering: optimizeLegibility;
         }
         
         .header {
@@ -158,11 +162,20 @@ export function generatePDF(htmlContent: string, filename: string) {
 
   printWindow.document.close();
   
-  // Wait for content to load, then trigger print
+  // Wait for fonts to load, then trigger print
   printWindow.onload = () => {
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
+    // Wait for fonts to load
+    if ('fonts' in document) {
+      document.fonts.ready.then(() => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 1000);
+      });
+    } else {
+      setTimeout(() => {
+        printWindow.print();
+      }, 1500);
+    }
   };
 }
 
@@ -485,6 +498,135 @@ export function generateProcOrderPDF(order: any) {
   `;
 
   generatePDF(htmlContent, `أمر_شراء_${order.orderNumber}`);
+}
+
+export function generateLiquidCashPDF(liquidData: any) {
+  const currentDate = new Date().toLocaleDateString('ar-SD', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const htmlContent = `
+    <div class="header">
+      <h1>التقرير النقدي السائل</h1>
+      <div class="date">تاريخ التقرير: ${currentDate}</div>
+    </div>
+
+    <div class="section">
+      <h2>ملخص السيولة النقدية</h2>
+      
+      <div class="summary">
+        <div class="summary-row">
+          <span>النقدية (كاش):</span>
+          <span class="amount positive">${formatCurrency(liquidData.net.cash)}</span>
+        </div>
+        <div class="summary-row">
+          <span>بنكك:</span>
+          <span class="amount positive">${formatCurrency(liquidData.net.bank)}</span>
+        </div>
+        <div class="summary-row">
+          <span>بنك النيل:</span>
+          <span class="amount positive">${formatCurrency(liquidData.net.bankNile)}</span>
+        </div>
+        <div class="summary-row total">
+          <span>إجمالي السيولة النقدية:</span>
+          <span class="amount positive">${formatCurrency(liquidData.net.total)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>تفصيل الإيرادات حسب طريقة الدفع</h2>
+      
+      <table>
+        <thead>
+          <tr>
+            <th>طريقة الدفع</th>
+            <th>إجمالي الإيرادات</th>
+            <th>عدد الدفعات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>النقدية (كاش)</td>
+            <td>${formatCurrency(liquidData.payments.cash.total)}</td>
+            <td>${liquidData.payments.cash.count} دفعة</td>
+          </tr>
+          <tr>
+            <td>بنكك</td>
+            <td>${formatCurrency(liquidData.payments.bank.total)}</td>
+            <td>${liquidData.payments.bank.count} دفعة</td>
+          </tr>
+          <tr>
+            <td>بنك النيل</td>
+            <td>${formatCurrency(liquidData.payments.bankNile.total)}</td>
+            <td>${liquidData.payments.bankNile.count} دفعة</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>تفصيل المنصرفات حسب طريقة الدفع</h2>
+      
+      <table>
+        <thead>
+          <tr>
+            <th>طريقة الدفع</th>
+            <th>إجمالي المنصرفات</th>
+            <th>عدد المنصرفات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>النقدية (كاش)</td>
+            <td>${formatCurrency(liquidData.expenses.cash.total)}</td>
+            <td>${liquidData.expenses.cash.count} منصرف</td>
+          </tr>
+          <tr>
+            <td>بنكك</td>
+            <td>${formatCurrency(liquidData.expenses.bank.total)}</td>
+            <td>${liquidData.expenses.bank.count} منصرف</td>
+          </tr>
+          <tr>
+            <td>بنك النيل</td>
+            <td>${formatCurrency(liquidData.expenses.bankNile.total)}</td>
+            <td>${liquidData.expenses.bankNile.count} منصرف</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>صافي السيولة النقدية</h2>
+      
+      <div class="summary">
+        <div class="summary-row">
+          <span>صافي النقدية (كاش):</span>
+          <span class="amount ${parseFloat(liquidData.net.cash) >= 0 ? 'positive' : 'negative'}">${formatCurrency(liquidData.net.cash)}</span>
+        </div>
+        <div class="summary-row">
+          <span>صافي بنكك:</span>
+          <span class="amount ${parseFloat(liquidData.net.bank) >= 0 ? 'positive' : 'negative'}">${formatCurrency(liquidData.net.bank)}</span>
+        </div>
+        <div class="summary-row">
+          <span>صافي بنك النيل:</span>
+          <span class="amount ${parseFloat(liquidData.net.bankNile) >= 0 ? 'positive' : 'negative'}">${formatCurrency(liquidData.net.bankNile)}</span>
+        </div>
+        <div class="summary-row total">
+          <span>إجمالي السيولة النقدية:</span>
+          <span class="amount ${parseFloat(liquidData.net.total) >= 0 ? 'positive' : 'negative'}">${formatCurrency(liquidData.net.total)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>تم إنشاء هذا التقرير في ${new Date().toLocaleString('ar-SD')}</p>
+    </div>
+  `;
+
+  generatePDF(htmlContent, 'التقرير النقدي السائل');
 }
 
 // Helper function to format currency
