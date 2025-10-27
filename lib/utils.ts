@@ -40,6 +40,7 @@ export const roleLabels: Record<string, string> = {
   PROCUREMENT: 'مشتريات',
   ACCOUNTANT: 'محاسب',
   AUDITOR: 'مراجع داخلي',
+  MANAGER: 'مدير',
 };
 
 export const sectionLabels: Record<string, string> = {

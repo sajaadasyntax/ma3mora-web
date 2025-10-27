@@ -187,5 +187,62 @@ export const api = {
   
   getAuditLogs: (params?: any) =>
     fetchAPI('/accounting/audit', { params }),
+
+  // Employees
+  getEmployees: () => fetchAPI('/employees'),
+  
+  createEmployee: (data: any) =>
+    fetchAPI('/employees', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  updateEmployee: (id: string, data: any) =>
+    fetchAPI(`/employees/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  
+  deleteEmployee: (id: string) =>
+    fetchAPI(`/employees/${id}`, {
+      method: 'DELETE',
+    }),
+
+  // Salaries
+  getEmployeeSalaries: (employeeId: string, params?: any) =>
+    fetchAPI(`/employees/${employeeId}/salaries`, { params }),
+  
+  createSalary: (data: any) =>
+    fetchAPI('/employees/salaries', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  paySalary: (id: string) =>
+    fetchAPI(`/employees/salaries/${id}/pay`, {
+      method: 'POST',
+    }),
+
+  // Advances
+  getEmployeeAdvances: (employeeId: string) =>
+    fetchAPI(`/employees/${employeeId}/advances`),
+  
+  createAdvance: (data: any) =>
+    fetchAPI('/employees/advances', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  payAdvance: (id: string) =>
+    fetchAPI(`/employees/advances/${id}/pay`, {
+      method: 'POST',
+    }),
+
+  // Reports
+  getSalesReports: (params?: any) =>
+    fetchAPI('/sales/reports', { params }),
+  
+  getProcurementReports: (params?: any) =>
+    fetchAPI('/procurement/reports', { params }),
 };
 

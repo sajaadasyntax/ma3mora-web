@@ -23,7 +23,7 @@ export default function DashboardLayout({
   }, []);
 
   useEffect(() => {
-    if (user && user.role === 'ACCOUNTANT') {
+    if (user && (user.role === 'ACCOUNTANT' || user.role === 'MANAGER')) {
       checkOpeningBalance();
     }
   }, [user, pathname]);
@@ -74,8 +74,8 @@ export default function DashboardLayout({
     return null;
   }
 
-  // Show warning message for accountant without opening balance
-  if (user.role === 'ACCOUNTANT' && !hasOpeningBalance && pathname !== '/dashboard/accounting/opening-balance') {
+  // Show warning message for accountant/manager without opening balance
+  if ((user.role === 'ACCOUNTANT' || user.role === 'MANAGER') && !hasOpeningBalance && pathname !== '/dashboard/accounting/opening-balance') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-orange-50">
         <div className="max-w-md w-full mx-4">
@@ -102,13 +102,14 @@ export default function DashboardLayout({
   const navigation = [
     { name: 'الرئيسية', href: '/dashboard', roles: ['*'] },
     { name: 'المخازن', href: '/dashboard/inventories', roles: ['*'] },
-    { name: 'العملاء', href: '/dashboard/customers', roles: ['SALES_GROCERY', 'SALES_BAKERY', 'ACCOUNTANT', 'AUDITOR'] },
-    { name: 'فواتير المبيعات', href: '/dashboard/sales', roles: ['SALES_GROCERY', 'SALES_BAKERY', 'INVENTORY', 'ACCOUNTANT', 'AUDITOR'] },
-    { name: 'الموردون', href: '/dashboard/suppliers', roles: ['PROCUREMENT', 'ACCOUNTANT', 'AUDITOR'] },
-    { name: 'أوامر الشراء', href: '/dashboard/procurement', roles: ['PROCUREMENT', 'INVENTORY', 'ACCOUNTANT', 'AUDITOR'] },
-    { name: 'الأصناف والأسعار', href: '/dashboard/items', roles: ['ACCOUNTANT', 'PROCUREMENT', 'AUDITOR'] },
-    { name: 'المحاسبة', href: '/dashboard/accounting', roles: ['ACCOUNTANT', 'AUDITOR'] },
-    { name: 'سجلات التدقيق', href: '/dashboard/audit', roles: ['AUDITOR', 'ACCOUNTANT'] },
+    { name: 'العملاء', href: '/dashboard/customers', roles: ['SALES_GROCERY', 'SALES_BAKERY', 'ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
+    { name: 'فواتير المبيعات', href: '/dashboard/sales', roles: ['SALES_GROCERY', 'SALES_BAKERY', 'INVENTORY', 'ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
+    { name: 'الموردون', href: '/dashboard/suppliers', roles: ['PROCUREMENT', 'ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
+    { name: 'أوامر الشراء', href: '/dashboard/procurement', roles: ['PROCUREMENT', 'INVENTORY', 'ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
+    { name: 'الأصناف والأسعار', href: '/dashboard/items', roles: ['ACCOUNTANT', 'PROCUREMENT', 'AUDITOR', 'MANAGER'] },
+    { name: 'الموظفين', href: '/dashboard/employees', roles: ['ACCOUNTANT', 'MANAGER'] },
+    { name: 'المحاسبة', href: '/dashboard/accounting', roles: ['ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
+    { name: 'سجلات التدقيق', href: '/dashboard/audit', roles: ['AUDITOR', 'ACCOUNTANT', 'MANAGER'] },
   ];
 
   const filteredNav = navigation.filter(
