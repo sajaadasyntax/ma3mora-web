@@ -803,7 +803,7 @@ export function generateDailyReportPDF(reportData: any) {
           </tr>
         </thead>
         <tbody>
-          ${reportData.sales.invoices.map((invoice: any) => `
+          ${reportData.sales.invoiceList.map((invoice: any) => `
             <tr>
               <td>${invoice.number}</td>
               <td>${invoice.customer}</td>
@@ -831,7 +831,7 @@ export function generateDailyReportPDF(reportData: any) {
           </tr>
         </thead>
         <tbody>
-          ${reportData.procurement.orders.map((order: any) => `
+          ${reportData.procurement.orderList.map((order: any) => `
             <tr>
               <td>${order.number}</td>
               <td>${order.supplier}</td>
