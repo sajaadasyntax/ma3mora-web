@@ -36,6 +36,11 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     method: 'CASH',
     notes: '',
   });
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [returnForm, setReturnForm] = useState({
+    reason: '',
+    notes: '',
+  });
 
   useEffect(() => {
     loadOrder();
@@ -108,6 +113,22 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     }
   };
 
+  const handleReturn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirm('هل أنت متأكد من إرجاع هذا الأمر؟')) {
+      return;
+    }
+    try {
+      await api.returnProcOrder(params.id, returnForm);
+      setReturnForm({ reason: '', notes: '' });
+      setShowReturnForm(false);
+      await loadOrder();
+      alert('تم إرجاع الأمر بنجاح');
+    } catch (error: any) {
+      alert(error.message || 'فشل إرجاع الأمر');
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">جاري التحميل...</div>;
   }
@@ -171,6 +192,24 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     {
       key: 'recordedByUser',
       label: 'سجل بواسطة',
+      render: (value: any) => value.username,
+    },
+    { key: 'notes', label: 'ملاحظات' },
+  ];
+
+  const returnColumns = [
+    {
+      key: 'returnedAt',
+      label: 'تاريخ الإرجاع',
+      render: (value: string) => formatDateTime(value),
+    },
+    {
+      key: 'reason',
+      label: 'السبب',
+    },
+    {
+      key: 'returnedByUser',
+      label: 'أرجع بواسطة',
       render: (value: any) => value.username,
     },
     { key: 'notes', label: 'ملاحظات' },
@@ -338,6 +377,40 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
               <div className="flex gap-2">
                 <Button type="submit">إضافة الدفعة</Button>
                 <Button type="button" variant="secondary" onClick={() => setShowPaymentForm(false)}>
+                  إلغاء
+                </Button>
+              </div>
+            </form>
+          </Card>
+        )}
+
+        {/* Returns */}
+        {order.returns && order.returns.length > 0 && (
+          <Card>
+            <h3 className="text-xl font-semibold mb-4">سجلات الإرجاع</h3>
+            <Table columns={returnColumns} data={order.returns} />
+          </Card>
+        )}
+
+        {/* Return Form */}
+        {user?.role === 'MANAGER' && order.paidAmount === 0 && !order.returns?.length && (
+          <Card>
+            <h3 className="text-xl font-semibold mb-4">إرجاع الأمر</h3>
+            <form onSubmit={handleReturn} className="space-y-4">
+              <Input
+                label="السبب"
+                value={returnForm.reason}
+                onChange={(e) => setReturnForm({ ...returnForm, reason: e.target.value })}
+                required
+              />
+              <Input
+                label="ملاحظات"
+                value={returnForm.notes}
+                onChange={(e) => setReturnForm({ ...returnForm, notes: e.target.value })}
+              />
+              <div className="flex gap-2">
+                <Button type="submit" variant="danger">إرجاع الأمر</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowReturnForm(false)}>
                   إلغاء
                 </Button>
               </div>

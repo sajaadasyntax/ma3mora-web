@@ -145,6 +145,12 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  returnProcOrder: (id: string, data: any) =>
+    fetchAPI(`/procurement/orders/${id}/return`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   receiveOrder: (id: string, notes?: string, partial?: boolean) =>
     fetchAPI(`/procurement/orders/${id}/receive`, {
       method: 'POST',
@@ -193,6 +199,9 @@ export const api = {
   
   getAuditLogs: (params?: any) =>
     fetchAPI('/accounting/audit', { params }),
+
+  getDailyReport: (date?: string) =>
+    fetchAPI('/accounting/daily-report', { params: date ? { date } : undefined }),
 
   // Employees
   getEmployees: () => fetchAPI('/employees'),

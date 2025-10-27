@@ -663,6 +663,220 @@ export function generateLiquidCashPDF(liquidData: any) {
   generatePDF(htmlContent, 'التقرير النقدي السائل');
 }
 
+export function generateDailyReportPDF(reportData: any) {
+  const currentDate = new Date(reportData.date).toLocaleDateString('ar-SD', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const htmlContent = `
+    <div class="header">
+      <h1>التقرير اليومي</h1>
+      <div class="date">تاريخ التقرير: ${currentDate}</div>
+    </div>
+
+    <div class="section">
+      <h2>ملخص المبيعات</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>البند</th>
+            <th>العدد</th>
+            <th>المبلغ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>عدد الفواتير</td>
+            <td>${reportData.sales.invoices}</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td>إجمالي المبيعات</td>
+            <td>-</td>
+            <td>${formatCurrency(reportData.sales.total)}</td>
+          </tr>
+          <tr>
+            <td>المحصل فعلياً</td>
+            <td>-</td>
+            <td class="positive">${formatCurrency(reportData.sales.received)}</td>
+          </tr>
+          <tr>
+            <td>المتبقي (ذمم)</td>
+            <td>-</td>
+            <td class="negative">${formatCurrency(reportData.sales.pending)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>ملخص المشتريات</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>البند</th>
+            <th>العدد</th>
+            <th>المبلغ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>عدد أوامر الشراء</td>
+            <td>${reportData.procurement.orders}</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td>إجمالي المشتريات</td>
+            <td>-</td>
+            <td>${formatCurrency(reportData.procurement.total)}</td>
+          </tr>
+          <tr>
+            <td>المدفوع</td>
+            <td>-</td>
+            <td class="negative">${formatCurrency(reportData.procurement.paid)}</td>
+          </tr>
+          <tr>
+            <td>المتبقي</td>
+            <td>-</td>
+            <td class="negative">${formatCurrency(reportData.procurement.pending)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>ملخص المنصرفات</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>البند</th>
+            <th>العدد</th>
+            <th>المبلغ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>عدد المنصرفات</td>
+            <td>${reportData.expenses.count}</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td>إجمالي المنصرفات</td>
+            <td>-</td>
+            <td class="negative">${formatCurrency(reportData.expenses.total)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>الملخص المالي</h2>
+      <div class="summary">
+        <div class="summary-row">
+          <span>إجمالي الإيرادات:</span>
+          <span class="amount positive">${formatCurrency(reportData.summary.totalRevenue)}</span>
+        </div>
+        <div class="summary-row">
+          <span>إجمالي التكاليف:</span>
+          <span class="amount negative">${formatCurrency(reportData.summary.totalCosts)}</span>
+        </div>
+        <div class="summary-row total">
+          <span>صافي التدفق النقدي:</span>
+          <span class="amount ${parseFloat(reportData.summary.netCashFlow) >= 0 ? 'positive' : 'negative'}">${formatCurrency(reportData.summary.netCashFlow)}</span>
+        </div>
+      </div>
+    </div>
+
+    ${reportData.sales.invoices > 0 ? `
+    <div class="section">
+      <h2>تفاصيل فواتير المبيعات</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>رقم الفاتورة</th>
+            <th>العميل</th>
+            <th>المجموع</th>
+            <th>المدفوع</th>
+            <th>الحالة</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reportData.sales.invoices.map((invoice: any) => `
+            <tr>
+              <td>${invoice.number}</td>
+              <td>${invoice.customer}</td>
+              <td>${formatCurrency(invoice.total)}</td>
+              <td>${formatCurrency(invoice.paid)}</td>
+              <td>${invoice.status === 'PAID' ? 'مدفوعة' : invoice.status === 'PARTIAL' ? 'جزئية' : 'آجلة'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    ` : ''}
+
+    ${reportData.procurement.orders > 0 ? `
+    <div class="section">
+      <h2>تفاصيل أوامر الشراء</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>رقم الأمر</th>
+            <th>المورد</th>
+            <th>المجموع</th>
+            <th>المدفوع</th>
+            <th>الحالة</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reportData.procurement.orders.map((order: any) => `
+            <tr>
+              <td>${order.number}</td>
+              <td>${order.supplier}</td>
+              <td>${formatCurrency(order.total)}</td>
+              <td>${formatCurrency(order.paid)}</td>
+              <td>${order.status === 'CONFIRMED' ? 'مؤكد' : 'في الانتظار'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    ` : ''}
+
+    ${reportData.expenses.count > 0 ? `
+    <div class="section">
+      <h2>تفاصيل المنصرفات</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>الوصف</th>
+            <th>المبلغ</th>
+            <th>طريقة الدفع</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reportData.expenses.items.map((expense: any) => `
+            <tr>
+              <td>${expense.description}</td>
+              <td>${formatCurrency(expense.amount)}</td>
+              <td>${expense.method === 'CASH' ? 'نقدي' : expense.method === 'BANK' ? 'بنكك' : 'بنك النيل'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    ` : ''}
+
+    <div class="footer">
+      <p>تم إنشاء هذا التقرير في ${new Date().toLocaleString('ar-SD')}</p>
+    </div>
+  `;
+
+  generatePDF(htmlContent, `التقرير_اليومي_${reportData.date}`);
+}
+
 // Helper function to format currency
 function formatCurrency(amount: number | string): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
