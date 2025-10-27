@@ -139,6 +139,12 @@ export const api = {
       method: 'POST',
     }),
 
+  addProcOrderPayment: (id: string, data: any) =>
+    fetchAPI(`/procurement/orders/${id}/payments`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   receiveOrder: (id: string, notes?: string, partial?: boolean) =>
     fetchAPI(`/procurement/orders/${id}/receive`, {
       method: 'POST',

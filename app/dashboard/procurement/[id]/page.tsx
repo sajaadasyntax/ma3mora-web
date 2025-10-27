@@ -7,6 +7,8 @@ import { useUser } from '@/lib/userContext';
 import Card from '@/components/Card';
 import Table from '@/components/Table';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
+import Select from '@/components/Select';
 import {
   formatCurrency,
   formatDateTime,
@@ -28,6 +30,12 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [receiving, setReceiving] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    amount: '',
+    method: 'CASH',
+    notes: '',
+  });
 
   useEffect(() => {
     loadOrder();
@@ -84,6 +92,22 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     }
   };
 
+  const handleAddPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await api.addProcOrderPayment(params.id, {
+        ...paymentForm,
+        amount: parseFloat(paymentForm.amount),
+      });
+      setPaymentForm({ amount: '', method: 'CASH', notes: '' });
+      setShowPaymentForm(false);
+      await loadOrder();
+      alert('تم إضافة الدفعة بنجاح');
+    } catch (error: any) {
+      alert(error.message || 'فشل إضافة الدفعة');
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">جاري التحميل...</div>;
   }
@@ -120,6 +144,33 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     {
       key: 'receivedByUser',
       label: 'تم الاستلام بواسطة',
+      render: (value: any) => value.username,
+    },
+    { key: 'notes', label: 'ملاحظات' },
+  ];
+
+  const paymentColumns = [
+    {
+      key: 'paidAt',
+      label: 'تاريخ الدفع',
+      render: (value: string) => formatDateTime(value),
+    },
+    {
+      key: 'amount',
+      label: 'المبلغ',
+      render: (value: number) => formatCurrency(value),
+    },
+    {
+      key: 'method',
+      label: 'طريقة الدفع',
+      render: (value: string) => {
+        const methods = { CASH: 'نقدي', BANK: 'بنك', BANK_NILE: 'بنك النيل' };
+        return methods[value as keyof typeof methods] || value;
+      },
+    },
+    {
+      key: 'recordedByUser',
+      label: 'سجل بواسطة',
       render: (value: any) => value.username,
     },
     { key: 'notes', label: 'ملاحظات' },
@@ -183,23 +234,30 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
               <p className="font-semibold">{order.creator.username}</p>
             </div>
             <div className="col-span-2">
-              <p className="text-gray-600">حالة تأكيد الدفع</p>
-              {order.paymentConfirmed ? (
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="inline-block px-3 py-1 rounded bg-green-100 text-green-800 text-sm font-semibold">
-                    ✓ تم تأكيد الدفع
-                  </span>
-                  {order.paymentConfirmedByUser && (
-                    <span className="text-sm text-gray-600">
-                      بواسطة: {order.paymentConfirmedByUser.username} - {formatDateTime(order.paymentConfirmedAt)}
-                    </span>
-                  )}
+              <p className="text-gray-600">حالة الدفع</p>
+              <div className="mt-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm">المجموع: {formatCurrency(order.total)}</span>
+                  <span className="text-sm text-green-600">المدفوع: {formatCurrency(order.paidAmount || 0)}</span>
+                  <span className="text-sm text-red-600">المتبقي: {formatCurrency((order.total - (order.paidAmount || 0)))}</span>
                 </div>
-              ) : (
-                <span className="inline-block px-3 py-1 rounded bg-orange-100 text-orange-800 text-sm font-semibold">
-                  ⏳ في انتظار تأكيد الدفع من المحاسب
-                </span>
-              )}
+                {order.paymentConfirmed ? (
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block px-3 py-1 rounded bg-green-100 text-green-800 text-sm font-semibold">
+                      ✓ تم تأكيد الدفع
+                    </span>
+                    {order.paymentConfirmedByUser && (
+                      <span className="text-sm text-gray-600">
+                        بواسطة: {order.paymentConfirmedByUser.username} - {formatDateTime(order.paymentConfirmedAt)}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="inline-block px-3 py-1 rounded bg-orange-100 text-orange-800 text-sm font-semibold">
+                    ⏳ في انتظار تأكيد الدفع من المدير
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </Card>
@@ -220,6 +278,73 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
           </div>
         </Card>
 
+        {/* Payments */}
+        {order.payments && order.payments.length > 0 && (
+          <Card>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">المدفوعات</h3>
+              {user?.role === 'MANAGER' && (
+                <Button onClick={() => setShowPaymentForm(true)}>
+                  إضافة دفعة
+                </Button>
+              )}
+            </div>
+            <Table columns={paymentColumns} data={order.payments} />
+            <div className="mt-4 border-t pt-4">
+              <div className="flex justify-between gap-8 text-lg">
+                <div>
+                  <p className="font-bold">المجموع الكلي:</p>
+                  <p className="font-bold">المدفوع:</p>
+                  <p className="font-bold">المتبقي:</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold">{formatCurrency(order.total)}</p>
+                  <p className="font-bold text-green-600">{formatCurrency(order.paidAmount || 0)}</p>
+                  <p className="font-bold text-red-600">{formatCurrency((order.total - (order.paidAmount || 0)))}</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Add Payment Form */}
+        {user?.role === 'MANAGER' && (
+          <Card>
+            <h3 className="text-xl font-semibold mb-4">إضافة دفعة</h3>
+            <form onSubmit={handleAddPayment} className="space-y-4">
+              <Input
+                label="المبلغ"
+                type="number"
+                value={paymentForm.amount}
+                onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                required
+              />
+              <Select
+                label="طريقة الدفع"
+                value={paymentForm.method}
+                onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}
+                options={[
+                  { value: 'CASH', label: 'نقدي' },
+                  { value: 'BANK', label: 'بنك' },
+                  { value: 'BANK_NILE', label: 'بنك النيل' },
+                ]}
+                required
+              />
+              <Input
+                label="ملاحظات"
+                value={paymentForm.notes}
+                onChange={(e) => setPaymentForm({ ...paymentForm, notes: e.target.value })}
+              />
+              <div className="flex gap-2">
+                <Button type="submit">إضافة الدفعة</Button>
+                <Button type="button" variant="secondary" onClick={() => setShowPaymentForm(false)}>
+                  إلغاء
+                </Button>
+              </div>
+            </form>
+          </Card>
+        )}
+
         {/* Receipts */}
         {order.receipts && order.receipts.length > 0 && (
           <Card>
@@ -229,7 +354,7 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
         )}
 
         {/* Actions */}
-        {user?.role === 'ACCOUNTANT' && !order.paymentConfirmed && (
+        {user?.role === 'MANAGER' && !order.paymentConfirmed && (
           <Card>
             <h3 className="text-xl font-semibold mb-4">تأكيد الدفع</h3>
             <p className="text-gray-600 mb-4">
