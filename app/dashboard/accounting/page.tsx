@@ -18,6 +18,7 @@ export default function AccountingPage() {
   const [submittingExchange, setSubmittingExchange] = useState(false);
   const [exchangeData, setExchangeData] = useState({
     amount: '',
+    fromMethod: 'CASH',
     toMethod: 'BANK',
     receiptNumber: '',
     receiptUrl: '',
@@ -76,14 +77,16 @@ export default function AccountingPage() {
     try {
       await api.createCashExchange({
         amount: parseFloat(exchangeData.amount),
+        fromMethod: exchangeData.fromMethod,
         toMethod: exchangeData.toMethod,
-        receiptNumber: exchangeData.receiptNumber,
+        receiptNumber: exchangeData.receiptNumber || undefined,
         receiptUrl: exchangeData.receiptUrl,
         notes: exchangeData.notes,
       });
       setShowExchangeForm(false);
       setExchangeData({
         amount: '',
+        fromMethod: 'CASH',
         toMethod: 'BANK',
         receiptNumber: '',
         receiptUrl: '',
@@ -237,7 +240,7 @@ export default function AccountingPage() {
                       className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-center font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
                       disabled={!balanceStatus?.isOpen}
                     >
-                      {showExchangeForm ? 'إلغاء صرف النقد' : 'صرف نقد إلى بنك'}
+                      {showExchangeForm ? 'إلغاء صرف النقد/بنك' : 'صرف نقد/بنك'}
                     </button>
                   )}
                 </>
@@ -256,7 +259,7 @@ export default function AccountingPage() {
 
       {/* Cash Exchange Form */}
       {!isAuditor && (user?.role === 'ACCOUNTANT' || user?.role === 'MANAGER') && showExchangeForm && balanceStatus?.isOpen && (
-        <Card title="صرف نقد إلى بنك" className="mt-6">
+        <Card title="صرف نقد/بنك" className="mt-6">
           <form onSubmit={handleExchange}>
             {duplicateError && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -273,6 +276,18 @@ export default function AccountingPage() {
                       )}
                       <li>المبلغ: {formatCurrency(parseFloat(duplicateError.existingTransaction.amount))}</li>
                       <li>رقم الإيصال: {duplicateError.existingTransaction.receiptNumber}</li>
+                      {duplicateError.existingTransaction.fromMethod && (
+                        <li>من: {
+                          duplicateError.existingTransaction.fromMethod === 'CASH' ? 'كاش' :
+                          duplicateError.existingTransaction.fromMethod === 'BANK' ? 'بنكك' : 'بنك النيل'
+                        }</li>
+                      )}
+                      {duplicateError.existingTransaction.toMethod && (
+                        <li>إلى: {
+                          duplicateError.existingTransaction.toMethod === 'CASH' ? 'كاش' :
+                          duplicateError.existingTransaction.toMethod === 'BANK' ? 'بنكك' : 'بنك النيل'
+                        }</li>
+                      )}
                       {duplicateError.existingTransaction.paidAt && (
                         <li>التاريخ: {formatDateTime(duplicateError.existingTransaction.paidAt)}</li>
                       )}
@@ -284,9 +299,6 @@ export default function AccountingPage() {
                       )}
                       {duplicateError.existingTransaction.createdBy && (
                         <li>بواسطة: {duplicateError.existingTransaction.createdBy}</li>
-                      )}
-                      {duplicateError.existingTransaction.toMethod && (
-                        <li>إلى: {duplicateError.existingTransaction.toMethod === 'BANK' ? 'بنكك' : 'بنك النيل'}</li>
                       )}
                     </ul>
                   </div>
@@ -314,24 +326,68 @@ export default function AccountingPage() {
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                البنك المستهدف
+                من
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                value={exchangeData.fromMethod}
+                onChange={(e) => {
+                  const newFromMethod = e.target.value;
+                  // If from and to are the same, swap to
+                  if (newFromMethod === exchangeData.toMethod) {
+                    const newToMethod = exchangeData.fromMethod;
+                    setExchangeData({ ...exchangeData, fromMethod: newFromMethod, toMethod: newToMethod });
+                  } else {
+                    setExchangeData({ ...exchangeData, fromMethod: newFromMethod });
+                  }
+                }}
+                required
+              >
+                <option value="CASH">كاش</option>
+                <option value="BANK">بنكك</option>
+                <option value="BANK_NILE">بنك النيل</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                إلى
               </label>
               <select
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 value={exchangeData.toMethod}
-                onChange={(e) => setExchangeData({ ...exchangeData, toMethod: e.target.value })}
+                onChange={(e) => {
+                  const newToMethod = e.target.value;
+                  // If from and to are the same, swap from
+                  if (newToMethod === exchangeData.fromMethod) {
+                    const newFromMethod = exchangeData.toMethod;
+                    setExchangeData({ ...exchangeData, fromMethod: newFromMethod, toMethod: newToMethod });
+                  } else {
+                    setExchangeData({ ...exchangeData, toMethod: newToMethod });
+                  }
+                }}
+                required
               >
+                <option value="CASH">كاش</option>
                 <option value="BANK">بنكك</option>
                 <option value="BANK_NILE">بنك النيل</option>
               </select>
             </div>
 
             <Input
-              label="رقم الإيصال (مطلوب)"
+              label={
+                (exchangeData.fromMethod === 'CASH' && (exchangeData.toMethod === 'BANK' || exchangeData.toMethod === 'BANK_NILE')) ||
+                ((exchangeData.fromMethod === 'BANK' || exchangeData.fromMethod === 'BANK_NILE') && exchangeData.toMethod === 'CASH')
+                  ? 'رقم الإيصال (مطلوب)'
+                  : 'رقم الإيصال (اختياري)'
+              }
               value={exchangeData.receiptNumber}
               onChange={(e) => setExchangeData({ ...exchangeData, receiptNumber: e.target.value })}
               placeholder="أدخل رقم الإيصال"
-              required
+              required={
+                (exchangeData.fromMethod === 'CASH' && (exchangeData.toMethod === 'BANK' || exchangeData.toMethod === 'BANK_NILE')) ||
+                ((exchangeData.fromMethod === 'BANK' || exchangeData.fromMethod === 'BANK_NILE') && exchangeData.toMethod === 'CASH')
+              }
             />
 
             <div className="mb-4">
@@ -408,7 +464,7 @@ export default function AccountingPage() {
                 <tr>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">التاريخ</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المبلغ</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">إلى</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">من → إلى</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">رقم الإيصال</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإيصال</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">بواسطة</th>
@@ -424,10 +480,12 @@ export default function AccountingPage() {
                       {formatCurrency(parseFloat(exchange.amount))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {exchange.toMethod === 'BANK' ? 'بنكك' : 'بنك النيل'}
+                      {exchange.fromMethod === 'CASH' ? 'كاش' : exchange.fromMethod === 'BANK' ? 'بنكك' : 'بنك النيل'}
+                      {' → '}
+                      {exchange.toMethod === 'CASH' ? 'كاش' : exchange.toMethod === 'BANK' ? 'بنكك' : 'بنك النيل'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {exchange.receiptNumber}
+                      {exchange.receiptNumber || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {exchange.receiptUrl ? (
