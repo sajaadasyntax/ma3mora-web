@@ -593,13 +593,13 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
         )}
 
         {/* Add Gifts */}
-        {user?.role === 'MANAGER' && order.paymentConfirmed && order.status !== 'RECEIVED' && order.status !== 'CANCELLED' && (
+        {user?.role === 'MANAGER' && !order.paymentConfirmed && order.status !== 'RECEIVED' && order.status !== 'CANCELLED' && (
           <Card>
             <div className="flex justify-between items-center mb-4">
               <div>
                 <h3 className="text-xl font-semibold">إضافة هدايا</h3>
                 <p className="text-gray-600 text-sm mt-1">
-                  يمكنك إضافة كميات هدايا للأصناف بعد تأكيد الدفع
+                  يمكنك إضافة كميات هدايا للأصناف قبل تأكيد الدفع
                 </p>
               </div>
               {!showGiftsForm && (
