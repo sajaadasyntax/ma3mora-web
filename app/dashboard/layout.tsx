@@ -32,7 +32,11 @@ export default function DashboardLayout({
     try {
       const response = await api.me();
       setUser(response.user);
-    } catch (error) {
+    } catch (error: any) {
+      // If session expired, show message before redirecting
+      if (error.sessionExpired) {
+        alert('تم إنهاء جلستك بسبب تسجيل الدخول من مكان آخر');
+      }
       router.push('/login');
     } finally {
       setLoading(false);

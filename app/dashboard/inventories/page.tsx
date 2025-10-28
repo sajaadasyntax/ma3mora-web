@@ -43,7 +43,7 @@ export default function InventoriesPage() {
 
   const loadStocks = async () => {
     try {
-      const data = await api.getInventoryStocks(selectedInventory, selectedSection);
+      const data = await api.getInventoryStocks(selectedInventory, { section: selectedSection });
       setStocks(data);
     } catch (error: any) {
       console.error('Error loading stocks:', error);

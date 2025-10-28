@@ -28,6 +28,13 @@ async function fetchAPI(endpoint: string, options: FetchOptions = {}) {
     const err = new Error(error.error || 'حدث خطأ') as any;
     err.error = error.error || 'حدث خطأ';
     err.existingTransaction = error.existingTransaction;
+    err.sessionExpired = error.sessionExpired || false;
+    // If session expired, clear cookie and redirect
+    if (error.sessionExpired && typeof window !== 'undefined') {
+      // Store session expiration message in sessionStorage for display on login page
+      sessionStorage.setItem('sessionExpired', 'true');
+      window.location.href = '/login';
+    }
     throw err;
   }
 
