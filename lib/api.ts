@@ -163,6 +163,12 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  cancelProcOrder: (id: string, data?: { reason?: string; notes?: string }) =>
+    fetchAPI(`/procurement/orders/${id}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    }),
+
   returnProcOrder: (id: string, data: any) =>
     fetchAPI(`/procurement/orders/${id}/return`, {
       method: 'POST',

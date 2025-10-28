@@ -43,6 +43,12 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     method: 'CASH',
     notes: '',
   });
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [cancelForm, setCancelForm] = useState({
+    reason: '',
+    notes: '',
+  });
+  const [cancelling, setCancelling] = useState(false);
   const [showReturnForm, setShowReturnForm] = useState(false);
   const [returnForm, setReturnForm] = useState({
     reason: '',
@@ -140,6 +146,25 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
       alert('تم إضافة الدفعة بنجاح');
     } catch (error: any) {
       alert(error.message || 'فشل إضافة الدفعة');
+    }
+  };
+
+  const handleCancel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirm('هل أنت متأكد من إلغاء هذا الأمر؟')) {
+      return;
+    }
+    setCancelling(true);
+    try {
+      await api.cancelProcOrder(params.id, cancelForm);
+      setCancelForm({ reason: '', notes: '' });
+      setShowCancelForm(false);
+      await loadOrder();
+      alert('تم إلغاء الأمر بنجاح');
+    } catch (error: any) {
+      alert(error.message || 'فشل إلغاء الأمر');
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -468,8 +493,57 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
           </Card>
         )}
 
+        {/* Cancel Form */}
+        {user?.role === 'MANAGER' && order.status !== 'CANCELLED' && order.status !== 'RECEIVED' && (
+          <Card>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">إلغاء الأمر</h3>
+              {!showCancelForm && (
+                <Button 
+                  variant="danger" 
+                  onClick={() => setShowCancelForm(true)}
+                >
+                  إلغاء الأمر
+                </Button>
+              )}
+            </div>
+            {showCancelForm && (
+              <form onSubmit={handleCancel} className="space-y-4">
+                <Input
+                  label="السبب (اختياري)"
+                  value={cancelForm.reason}
+                  onChange={(e) => setCancelForm({ ...cancelForm, reason: e.target.value })}
+                  placeholder="سبب الإلغاء..."
+                />
+                <Input
+                  label="ملاحظات (اختياري)"
+                  value={cancelForm.notes}
+                  onChange={(e) => setCancelForm({ ...cancelForm, notes: e.target.value })}
+                  placeholder="ملاحظات إضافية..."
+                />
+                <div className="flex gap-2">
+                  <Button type="submit" variant="danger" disabled={cancelling}>
+                    {cancelling ? 'جاري الإلغاء...' : 'تأكيد الإلغاء'}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={() => {
+                      setShowCancelForm(false);
+                      setCancelForm({ reason: '', notes: '' });
+                    }}
+                    disabled={cancelling}
+                  >
+                    إلغاء
+                  </Button>
+                </div>
+              </form>
+            )}
+          </Card>
+        )}
+
         {/* Return Form */}
-        {user?.role === 'MANAGER' && order.paidAmount === 0 && !order.returns?.length && (
+        {user?.role === 'MANAGER' && order.paidAmount === 0 && !order.returns?.length && order.status !== 'CANCELLED' && (
           <Card>
             <h3 className="text-xl font-semibold mb-4">إرجاع الأمر</h3>
             <form onSubmit={handleReturn} className="space-y-4">
