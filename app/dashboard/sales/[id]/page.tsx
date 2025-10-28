@@ -351,7 +351,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
           <Card>
             <h3 className="text-xl font-semibold mb-4">الإجراءات</h3>
             <div className="flex gap-4">
-              {(user?.role === 'ACCOUNTANT' || user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY') &&
+              {user?.role === 'ACCOUNTANT' &&
                 invoice.paymentStatus !== 'PAID' &&
                 remainingAmount > 0 && (
                   <Button 
