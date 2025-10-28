@@ -438,6 +438,7 @@ export default function AccountingPage() {
                   setShowExchangeForm(false);
                   setExchangeData({
                     amount: '',
+                    fromMethod: 'CASH',
                     toMethod: 'BANK',
                     receiptNumber: '',
                     receiptUrl: '',
