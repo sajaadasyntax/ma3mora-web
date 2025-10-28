@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useUser } from '@/lib/userContext';
 import Card from '@/components/Card';
@@ -35,24 +35,6 @@ export default function InventoryTransfersPage() {
 
   const canEdit = user?.role === 'MANAGER' || user?.role === 'INVENTORY';
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (filters.inventoryId || filters.itemId) {
-      loadTransfers();
-    } else {
-      loadTransfers();
-    }
-  }, [filters]);
-
-  useEffect(() => {
-    if (form.fromInventoryId && selectedSection) {
-      loadSourceStocks();
-    }
-  }, [form.fromInventoryId, selectedSection]);
-
   const loadData = async () => {
     try {
       const [inventoriesData, itemsData] = await Promise.all([
@@ -71,17 +53,35 @@ export default function InventoryTransfersPage() {
     }
   };
 
-  const loadTransfers = async () => {
+  const loadTransfers = useCallback(async () => {
     try {
       const params: any = {};
       if (filters.inventoryId) params.inventoryId = filters.inventoryId;
       if (filters.itemId) params.itemId = filters.itemId;
       const data = await api.getInventoryTransfers(params);
       setTransfers(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading transfers:', error);
+      alert(error.message || 'فشل تحميل بيانات النقل');
     }
-  };
+  }, [filters.inventoryId, filters.itemId]);
+
+  useEffect(() => {
+    const initialize = async () => {
+      await loadData();
+    };
+    initialize();
+  }, []);
+
+  useEffect(() => {
+    loadTransfers();
+  }, [loadTransfers]);
+
+  useEffect(() => {
+    if (form.fromInventoryId && selectedSection) {
+      loadSourceStocks();
+    }
+  }, [form.fromInventoryId, selectedSection]);
 
   const loadSourceStocks = async () => {
     try {
