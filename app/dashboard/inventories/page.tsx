@@ -45,8 +45,12 @@ export default function InventoriesPage() {
     try {
       const data = await api.getInventoryStocks(selectedInventory, selectedSection);
       setStocks(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading stocks:', error);
+      if (error.details) {
+        console.error('Error details:', error.details);
+      }
+      alert('فشل تحميل المخزون: ' + (error.message || error.error || 'خطأ غير معروف'));
     }
   };
 
