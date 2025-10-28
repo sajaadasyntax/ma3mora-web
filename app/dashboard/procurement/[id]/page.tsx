@@ -47,6 +47,9 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
   const [cancelForm, setCancelForm] = useState({
     reason: '',
     notes: '',
+    refundMethod: '',
+    refundAmount: '',
+    refundNotes: '',
   });
   const [cancelling, setCancelling] = useState(false);
   const [showReturnForm, setShowReturnForm] = useState(false);
@@ -151,18 +154,41 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
 
   const handleCancel = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if order has payments and refund info is required
+    const hasPayments = order && parseFloat(order.paidAmount || 0) > 0;
+    if (hasPayments && (!cancelForm.refundMethod || !cancelForm.refundAmount)) {
+      alert('يجب تحديد طريقة ومبلغ استرجاع المبلغ لأن الأمر مدفوع');
+      return;
+    }
+
     if (!confirm('هل أنت متأكد من إلغاء هذا الأمر؟')) {
       return;
     }
     setCancelling(true);
     try {
-      await api.cancelProcOrder(params.id, cancelForm);
-      setCancelForm({ reason: '', notes: '' });
+      const cancelData: any = {
+        reason: cancelForm.reason,
+        notes: cancelForm.notes,
+      };
+      
+      if (hasPayments) {
+        cancelData.refundMethod = cancelForm.refundMethod;
+        cancelData.refundAmount = parseFloat(cancelForm.refundAmount);
+        cancelData.refundNotes = cancelForm.refundNotes;
+      }
+
+      await api.cancelProcOrder(params.id, cancelData);
+      setCancelForm({ reason: '', notes: '', refundMethod: '', refundAmount: '', refundNotes: '' });
       setShowCancelForm(false);
       await loadOrder();
       alert('تم إلغاء الأمر بنجاح');
     } catch (error: any) {
-      alert(error.message || 'فشل إلغاء الأمر');
+      if (error.error && error.required) {
+        alert(`خطأ: ${error.error}\nالحقول المطلوبة: ${error.required.join(', ')}`);
+      } else {
+        alert(error.message || error.error || 'فشل إلغاء الأمر');
+      }
     } finally {
       setCancelling(false);
     }
@@ -399,6 +425,29 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                 )}
               </div>
             </div>
+            {order.status === 'CANCELLED' && order.refundMethod && order.refundAmount && (
+              <div className="col-span-2 border-t pt-4 mt-2">
+                <p className="text-gray-600 mb-2">معلومات الاسترجاع</p>
+                <div className="bg-red-50 border border-red-200 rounded p-3">
+                  <div className="flex items-center gap-4 mb-2">
+                    <span className="text-sm font-semibold text-red-800">
+                      مبلغ الاسترجاع: {formatCurrency(parseFloat(order.refundAmount))}
+                    </span>
+                    <span className="text-sm text-gray-700">
+                      طريقة الاسترجاع: {order.refundMethod === 'CASH' ? 'كاش' : order.refundMethod === 'BANK' ? 'بنكك' : 'بنك النيل'}
+                    </span>
+                  </div>
+                  {order.refundNotes && (
+                    <p className="text-sm text-gray-700 mt-2">ملاحظات: {order.refundNotes}</p>
+                  )}
+                  {order.refundedByUser && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      تم الاسترجاع بواسطة: {order.refundedByUser.username} - {formatDateTime(order.refundedAt)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -521,6 +570,41 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                   onChange={(e) => setCancelForm({ ...cancelForm, notes: e.target.value })}
                   placeholder="ملاحظات إضافية..."
                 />
+                {parseFloat(order.paidAmount || 0) > 0 && (
+                  <>
+                    <div className="border-t pt-4 mt-4">
+                      <h4 className="font-semibold mb-3 text-red-600">معلومات استرجاع المبلغ</h4>
+                      <Select
+                        label="طريقة استرجاع المبلغ *"
+                        value={cancelForm.refundMethod}
+                        onChange={(e) => setCancelForm({ ...cancelForm, refundMethod: e.target.value })}
+                        options={[
+                          { value: 'CASH', label: 'كاش' },
+                          { value: 'BANK', label: 'بنكك' },
+                          { value: 'BANK_NILE', label: 'بنك النيل' },
+                        ]}
+                        required
+                      />
+                      <Input
+                        label={`مبلغ الاسترجاع * (المدفوع: ${formatCurrency(parseFloat(order.paidAmount || 0))})`}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max={order.paidAmount}
+                        value={cancelForm.refundAmount}
+                        onChange={(e) => setCancelForm({ ...cancelForm, refundAmount: e.target.value })}
+                        placeholder="0.00"
+                        required
+                      />
+                      <Input
+                        label="ملاحظات الاسترجاع (اختياري)"
+                        value={cancelForm.refundNotes}
+                        onChange={(e) => setCancelForm({ ...cancelForm, refundNotes: e.target.value })}
+                        placeholder="ملاحظات حول عملية الاسترجاع..."
+                      />
+                    </div>
+                  </>
+                )}
                 <div className="flex gap-2">
                   <Button type="submit" variant="danger" disabled={cancelling}>
                     {cancelling ? 'جاري الإلغاء...' : 'تأكيد الإلغاء'}
@@ -530,7 +614,7 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                     variant="secondary" 
                     onClick={() => {
                       setShowCancelForm(false);
-                      setCancelForm({ reason: '', notes: '' });
+                      setCancelForm({ reason: '', notes: '', refundMethod: '', refundAmount: '', refundNotes: '' });
                     }}
                     disabled={cancelling}
                   >

@@ -131,6 +131,11 @@ export default function AccountingPage() {
           <h3 className="text-lg font-semibold mb-2">إجمالي المشتريات</h3>
           <p className="text-3xl font-bold">{formatCurrency(balance.procurement?.total || 0)}</p>
           <p className="text-sm mt-2">{balance.procurement?.count || 0} أمر شراء</p>
+          {balance.procurement?.cancelled && balance.procurement.cancelled.count > 0 && (
+            <p className="text-sm mt-1 opacity-90">
+              ملغي: {balance.procurement.cancelled.count} ({formatCurrency(parseFloat(balance.procurement.cancelled.total))})
+            </p>
+          )}
         </Card>
 
         <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
