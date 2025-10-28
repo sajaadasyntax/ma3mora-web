@@ -249,6 +249,27 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     return <div className="text-center py-8">أمر الشراء غير موجود</div>;
   }
 
+  // Calculate received quantities per item from all receipts
+  const getReceivedQuantities = () => {
+    const received: { [itemId: string]: number } = {};
+    
+    if (order.receipts) {
+      order.receipts.forEach((receipt: any) => {
+        if (receipt.batches) {
+          receipt.batches.forEach((batch: any) => {
+            const itemId = batch.itemId;
+            const qty = parseFloat(batch.quantity?.toString() || '0');
+            received[itemId] = (received[itemId] || 0) + qty;
+          });
+        }
+      });
+    }
+    
+    return received;
+  };
+
+  const receivedQuantities = getReceivedQuantities();
+
   const itemColumns = [
     {
       key: 'item',
@@ -257,18 +278,88 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     },
     { 
       key: 'quantity', 
-      label: 'الكمية',
+      label: 'الكمية المطلوبة',
       render: (value: any, row: any) => {
         const giftQty = parseFloat(row.giftQty?.toString() || '0');
+        const orderedQty = parseFloat(value?.toString() || '0');
         if (giftQty > 0) {
           return (
             <div>
-              <span>{formatNumber(value)}</span>
+              <span>{formatNumber(orderedQty)}</span>
               <span className="text-green-600 text-sm mr-2"> + {formatNumber(giftQty)} هدية</span>
             </div>
           );
         }
-        return formatNumber(value);
+        return formatNumber(orderedQty);
+      },
+    },
+    {
+      key: 'quantity',
+      label: 'المستلم',
+      render: (value: any, row: any) => {
+        const itemId = row.itemId;
+        const received = receivedQuantities[itemId] || 0;
+        const giftQty = parseFloat(row.giftQty?.toString() || '0');
+        const orderedQty = parseFloat(value?.toString() || '0');
+        const totalOrdered = orderedQty + giftQty;
+        
+        if (received === 0) {
+          return <span className="text-red-600 font-semibold">0</span>;
+        } else if (received >= totalOrdered) {
+          return <span className="text-green-600 font-semibold">{formatNumber(received)} ✓</span>;
+        } else {
+          return <span className="text-orange-600 font-semibold">{formatNumber(received)}</span>;
+        }
+      },
+    },
+    {
+      key: 'quantity',
+      label: 'المتبقي',
+      render: (value: any, row: any) => {
+        const itemId = row.itemId;
+        const received = receivedQuantities[itemId] || 0;
+        const giftQty = parseFloat(row.giftQty?.toString() || '0');
+        const orderedQty = parseFloat(value?.toString() || '0');
+        const totalOrdered = orderedQty + giftQty;
+        const pending = Math.max(0, totalOrdered - received);
+        
+        if (pending === 0) {
+          return <span className="text-green-600 font-semibold">0 ✓</span>;
+        } else {
+          return <span className="text-red-600 font-semibold">{formatNumber(pending)}</span>;
+        }
+      },
+    },
+    {
+      key: 'quantity',
+      label: 'حالة التسليم',
+      render: (value: any, row: any) => {
+        const itemId = row.itemId;
+        const received = receivedQuantities[itemId] || 0;
+        const giftQty = parseFloat(row.giftQty?.toString() || '0');
+        const orderedQty = parseFloat(value?.toString() || '0');
+        const totalOrdered = orderedQty + giftQty;
+        const pending = totalOrdered - received;
+        
+        if (received === 0) {
+          return (
+            <span className="inline-block px-2 py-1 rounded text-xs bg-red-100 text-red-800 font-semibold">
+              غير مستلم
+            </span>
+          );
+        } else if (pending <= 0) {
+          return (
+            <span className="inline-block px-2 py-1 rounded text-xs bg-green-100 text-green-800 font-semibold">
+              ✓ مستلم كامل
+            </span>
+          );
+        } else {
+          return (
+            <span className="inline-block px-2 py-1 rounded text-xs bg-orange-100 text-orange-800 font-semibold">
+              مستلم جزئي
+            </span>
+          );
+        }
       },
     },
     {
@@ -453,7 +544,22 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
 
         {/* Items */}
         <Card>
-          <h3 className="text-xl font-semibold mb-4">الأصناف</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold">الأصناف</h3>
+            {order.receipts && order.receipts.length > 0 && (
+              <div className="text-sm text-gray-600">
+                {order.status === 'RECEIVED' ? (
+                  <span className="px-3 py-1 rounded bg-green-100 text-green-800 font-semibold">
+                    ✓ جميع الأصناف مستلمة
+                  </span>
+                ) : order.status === 'PARTIAL' ? (
+                  <span className="px-3 py-1 rounded bg-orange-100 text-orange-800 font-semibold">
+                    ⚠ استلام جزئي ({order.receipts.length} استلام)
+                  </span>
+                ) : null}
+              </div>
+            )}
+          </div>
           <Table columns={itemColumns} data={order.items} />
           <div className="mt-4 border-t pt-4">
             <div className="flex justify-end gap-8 text-lg">
@@ -655,8 +761,42 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
         {/* Receipts */}
         {order.receipts && order.receipts.length > 0 && (
           <Card>
-            <h3 className="text-xl font-semibold mb-4">سجلات الاستلام</h3>
-            <Table columns={receiptColumns} data={order.receipts} />
+            <h3 className="text-xl font-semibold mb-4">سجلات الاستلام ({order.receipts.length})</h3>
+            {order.receipts.map((receipt: any, idx: number) => (
+              <div key={receipt.id} className={`mb-6 ${idx < order.receipts.length - 1 ? 'border-b pb-6' : ''}`}>
+                <div className="flex justify-between items-center mb-3">
+                  <div>
+                    <p className="font-semibold">
+                      استلام #{idx + 1} - {formatDateTime(receipt.receivedAt)}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      بواسطة: {receipt.receivedByUser?.username}
+                      {receipt.notes && ` - ${receipt.notes}`}
+                    </p>
+                  </div>
+                </div>
+                {receipt.batches && receipt.batches.length > 0 && (
+                  <div className="mt-3 bg-gray-50 rounded-lg p-4">
+                    <h4 className="font-semibold mb-2 text-sm">الأصناف المستلمة في هذا الاستلام:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {receipt.batches.map((batch: any) => (
+                        <div key={batch.id} className="flex justify-between items-center text-sm bg-white p-2 rounded">
+                          <span className="font-medium">{batch.item?.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-blue-600 font-semibold">{formatNumber(batch.quantity)}</span>
+                            {batch.expiryDate && (
+                              <span className="text-xs text-gray-500">
+                                (انتهاء: {new Date(batch.expiryDate).toLocaleDateString('ar-EG')})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </Card>
         )}
 
