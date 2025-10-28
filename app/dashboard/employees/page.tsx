@@ -46,6 +46,8 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddEmployee, setShowAddEmployee] = useState(false);
+  const [showEditEmployee, setShowEditEmployee] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [showAddSalary, setShowAddSalary] = useState(false);
   const [showAddAdvance, setShowAddAdvance] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -69,6 +71,16 @@ export default function EmployeesPage() {
     paymentMethod: 'CASH' as 'CASH' | 'BANK' | 'BANK_NILE',
     notes: '',
   });
+
+  // Auto-fill salary amount when employee is selected
+  useEffect(() => {
+    if (salaryForm.employeeId && employees.length > 0 && !salaryForm.amount) {
+      const selectedEmployee = employees.find(emp => emp.id === salaryForm.employeeId);
+      if (selectedEmployee) {
+        setSalaryForm(prev => ({ ...prev, amount: selectedEmployee.salary.toString() }));
+      }
+    }
+  }, [salaryForm.employeeId, salaryForm.amount, employees]);
 
   const [advanceForm, setAdvanceForm] = useState({
     employeeId: '',
@@ -116,9 +128,42 @@ export default function EmployeesPage() {
       setEmployeeForm({ name: '', position: '', phone: '', address: '', salary: '' });
       setShowAddEmployee(false);
       loadEmployees();
-    } catch (error) {
+      alert('تم إضافة الموظف بنجاح');
+    } catch (error: any) {
+      alert(error.message || 'فشل إضافة الموظف');
       console.error('Error creating employee:', error);
     }
+  };
+
+  const handleEditEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEmployee) return;
+    try {
+      await api.updateEmployee(editingEmployee.id, {
+        ...employeeForm,
+        salary: parseFloat(employeeForm.salary),
+      });
+      setEmployeeForm({ name: '', position: '', phone: '', address: '', salary: '' });
+      setShowEditEmployee(false);
+      setEditingEmployee(null);
+      loadEmployees();
+      alert('تم تحديث بيانات الموظف بنجاح');
+    } catch (error: any) {
+      alert(error.message || 'فشل تحديث بيانات الموظف');
+      console.error('Error updating employee:', error);
+    }
+  };
+
+  const handleEditClick = (employee: Employee) => {
+    setEditingEmployee(employee);
+    setEmployeeForm({
+      name: employee.name,
+      position: employee.position,
+      phone: employee.phone || '',
+      address: employee.address || '',
+      salary: employee.salary.toString(),
+    });
+    setShowEditEmployee(true);
   };
 
   const handleAddSalary = async (e: React.FormEvent) => {
@@ -197,13 +242,20 @@ export default function EmployeesPage() {
           >
             التفاصيل
           </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => handleEditClick(employee)}
+          >
+            تعديل الراتب
+          </Button>
         </div>
       ),
     },
   ];
 
   const salaryColumns = [
-    { key: 'month', label: 'الشهر', render: (value: number) => `${value}/${salaryForm.year}` },
+    { key: 'month', label: 'الشهر', render: (value: number, row: Salary) => `${value}/${row.year}` },
     { key: 'amount', label: 'المبلغ', render: (value: number) => formatCurrency(value) },
     { key: 'paidAt', label: 'تاريخ الدفع', render: (value: string) => value ? formatDateTime(value) : 'لم يتم الدفع' },
     { key: 'creator', label: 'أنشأ بواسطة', render: (value: any) => value.username },
@@ -256,17 +308,9 @@ export default function EmployeesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">إدارة الموظفين</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowAddEmployee(true)}>
-            إضافة موظف
-          </Button>
-          <Button onClick={() => setShowAddSalary(true)}>
-            إضافة راتب
-          </Button>
-          <Button onClick={() => setShowAddAdvance(true)}>
-            إضافة سلفية
-          </Button>
-        </div>
+        <Button onClick={() => setShowAddEmployee(true)}>
+          إضافة موظف
+        </Button>
       </div>
 
       <Card>
@@ -355,6 +399,68 @@ export default function EmployeesPage() {
         </div>
       )}
 
+      {/* Edit Employee Modal */}
+      {showEditEmployee && editingEmployee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">تعديل راتب الموظف: {editingEmployee.name}</h2>
+            <form onSubmit={handleEditEmployee} className="space-y-4">
+              <Input
+                label="الاسم"
+                value={employeeForm.name}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, name: e.target.value })}
+                required
+                readOnly
+                className="bg-gray-100"
+              />
+              <Input
+                label="المنصب"
+                value={employeeForm.position}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, position: e.target.value })}
+                required
+                readOnly
+                className="bg-gray-100"
+              />
+              <Input
+                label="الراتب"
+                type="number"
+                value={employeeForm.salary}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, salary: e.target.value })}
+                required
+              />
+              <Input
+                label="الهاتف"
+                value={employeeForm.phone}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, phone: e.target.value })}
+                readOnly
+                className="bg-gray-100"
+              />
+              <Input
+                label="العنوان"
+                value={employeeForm.address}
+                onChange={(e) => setEmployeeForm({ ...employeeForm, address: e.target.value })}
+                readOnly
+                className="bg-gray-100"
+              />
+              <div className="flex gap-2">
+                <Button type="submit">حفظ التغييرات</Button>
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  onClick={() => {
+                    setShowEditEmployee(false);
+                    setEditingEmployee(null);
+                    setEmployeeForm({ name: '', position: '', phone: '', address: '', salary: '' });
+                  }}
+                >
+                  إلغاء
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Add Salary Modal */}
       {showAddSalary && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -364,11 +470,18 @@ export default function EmployeesPage() {
               <Select
                 label="الموظف"
                 value={salaryForm.employeeId}
-                onChange={(e) => setSalaryForm({ ...salaryForm, employeeId: e.target.value })}
+                onChange={(e) => {
+                  const selectedEmployee = employees.find(emp => emp.id === e.target.value);
+                  setSalaryForm({ 
+                    ...salaryForm, 
+                    employeeId: e.target.value,
+                    amount: selectedEmployee ? selectedEmployee.salary.toString() : ''
+                  });
+                }}
                 required
                 options={employees.map((emp) => ({
                   value: emp.id,
-                  label: `${emp.name} - ${emp.position}`,
+                  label: `${emp.name} - ${emp.position} (${formatCurrency(emp.salary)})`,
                 }))}
               />
               <Input
@@ -377,6 +490,8 @@ export default function EmployeesPage() {
                 value={salaryForm.amount}
                 onChange={(e) => setSalaryForm({ ...salaryForm, amount: e.target.value })}
                 required
+                readOnly
+                className="bg-gray-100"
               />
               <div className="grid grid-cols-2 gap-2">
                 <Select
