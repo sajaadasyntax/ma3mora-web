@@ -42,8 +42,14 @@ export default function AccountingPage() {
       setBalance(balanceData);
       setBalanceStatus(statusData);
       setCashExchanges(exchangesData);
+      
+      // Log for debugging
+      if (!statusData?.isOpen) {
+        console.log('Balance is closed - cash exchange button will be disabled');
+      }
     } catch (error) {
       console.error('Error loading data:', error);
+      alert('فشل تحميل البيانات. يرجى المحاولة مرة أخرى.');
     } finally {
       setLoading(false);
     }
@@ -221,10 +227,15 @@ export default function AccountingPage() {
                   >
                     إضافة منصرف
                   </a>
-                  {(user?.role === 'ACCOUNTANT' || user?.role === 'MANAGER') && (
+                  {(user?.role === 'ACCOUNTANT' || user?.role === 'MANAGER') && balanceStatus?.isOpen && (
                     <button
-                      onClick={() => setShowExchangeForm(!showExchangeForm)}
-                      className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-center"
+                      type="button"
+                      onClick={() => {
+                        setShowExchangeForm(!showExchangeForm);
+                        setDuplicateError(null);
+                      }}
+                      className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-center font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                      disabled={!balanceStatus?.isOpen}
                     >
                       {showExchangeForm ? 'إلغاء صرف النقد' : 'صرف نقد إلى بنك'}
                     </button>
