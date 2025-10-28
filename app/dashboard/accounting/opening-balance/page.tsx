@@ -38,32 +38,13 @@ export default function OpeningBalancePage() {
     e.preventDefault();
 
     try {
-      // Create opening balance for Cash
-      if (formData.cash && parseFloat(formData.cash) > 0) {
-        await api.createOpeningBalance({
-          scope: 'CASHBOX',
-          amount: parseFloat(formData.cash),
-          notes: `رصيد افتتاحي - كاش${formData.notes ? ' - ' + formData.notes : ''}`,
-        });
-      }
-
-      // Create opening balance for Bank
-      if (formData.bank && parseFloat(formData.bank) > 0) {
-        await api.createOpeningBalance({
-          scope: 'CASHBOX',
-          amount: parseFloat(formData.bank),
-          notes: `رصيد افتتاحي - بنك${formData.notes ? ' - ' + formData.notes : ''}`,
-        });
-      }
-
-      // Create opening balance for Fawry
-      if (formData.fawry && parseFloat(formData.fawry) > 0) {
-        await api.createOpeningBalance({
-          scope: 'CASHBOX',
-          amount: parseFloat(formData.fawry),
-          notes: `رصيد افتتاحي - فوري${formData.notes ? ' - ' + formData.notes : ''}`,
-        });
-      }
+      // Use the new optimized balance/open endpoint that accepts all payment methods at once
+      await api.openBalance({
+        cash: parseFloat(formData.cash) || 0,
+        bank: parseFloat(formData.bank) || 0,
+        bankNile: parseFloat(formData.fawry) || 0,
+        notes: formData.notes || undefined,
+      });
 
       alert('✅ تم حفظ رأس المال الافتتاحي بنجاح! يمكنك الآن الوصول للنظام.');
       router.push('/dashboard');
@@ -98,7 +79,7 @@ export default function OpeningBalancePage() {
                 مطلوب: إدخال رأس المال الافتتاحي
               </h3>
               <p className="text-yellow-800">
-                يجب إدخال رأس المال الافتتاحي (كاش، بنك، فوري) قبل البدء باستخدام النظام.
+                يجب إدخال رأس المال الافتتاحي (كاش، بنكك، بنك النيل) قبل البدء باستخدام النظام.
                 هذا إجراء ضروري لتتبع الحسابات بشكل دقيق.
               </p>
             </div>
@@ -144,25 +125,25 @@ export default function OpeningBalancePage() {
 
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg">
               <Input
-                label="🏦 رصيد البنك"
+                label="🏦 رصيد بنكك"
                 type="number"
                 step="0.01"
                 min="0"
                 value={formData.bank}
                 onChange={(e) => setFormData({ ...formData, bank: e.target.value })}
-                placeholder="أدخل رصيد البنك"
+                placeholder="أدخل رصيد بنكك"
               />
             </div>
 
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg">
               <Input
-                label="📱 رصيد فوري"
+                label="🏦 رصيد بنك النيل"
                 type="number"
                 step="0.01"
                 min="0"
                 value={formData.fawry}
                 onChange={(e) => setFormData({ ...formData, fawry: e.target.value })}
-                placeholder="أدخل رصيد فوري"
+                placeholder="أدخل رصيد بنك النيل"
               />
             </div>
 
@@ -189,13 +170,13 @@ export default function OpeningBalancePage() {
                   </p>
                 </div>
                 <div className="bg-blue-50 p-3 rounded">
-                  <p className="text-gray-600">بنك</p>
+                  <p className="text-gray-600">بنكك</p>
                   <p className="font-semibold text-blue-700">
                     {formatCurrency(parseFloat(formData.bank) || 0)}
                   </p>
                 </div>
                 <div className="bg-purple-50 p-3 rounded">
-                  <p className="text-gray-600">فوري</p>
+                  <p className="text-gray-600">بنك النيل</p>
                   <p className="font-semibold text-purple-700">
                     {formatCurrency(parseFloat(formData.fawry) || 0)}
                   </p>

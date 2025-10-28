@@ -12,6 +12,7 @@ import Select from '@/components/Select';
 import {
   formatCurrency,
   formatDateTime,
+  formatNumber,
   procOrderStatusLabels,
   sectionLabels,
 } from '@/lib/utils';
@@ -30,6 +31,12 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
   const [receiving, setReceiving] = useState(false);
+  const [showReceiveForm, setShowReceiveForm] = useState(false);
+  const [receiveForm, setReceiveForm] = useState({
+    notes: '',
+    partial: false,
+    batches: [] as Array<{ itemId: string; quantity: number; expiryDate: string; notes?: string }>,
+  });
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
     amount: '',
@@ -41,6 +48,9 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     reason: '',
     notes: '',
   });
+  const [showGiftsForm, setShowGiftsForm] = useState(false);
+  const [giftsForm, setGiftsForm] = useState<Array<{ itemId: string; giftQty: number }>>([]);
+  const [addingGifts, setAddingGifts] = useState(false);
 
   useEffect(() => {
     loadOrder();
@@ -76,18 +86,23 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     }
   };
 
-  const handleReceive = async (partial = false) => {
-    const confirmMsg = partial
-      ? 'هل أنت متأكد من استلام هذا الأمر جزئياً؟'
-      : 'هل أنت متأكد من استلام هذا الأمر بالكامل؟';
-
-    if (!confirm(confirmMsg)) {
-      return;
-    }
-
+  const handleReceive = async () => {
     setReceiving(true);
     try {
-      await api.receiveOrder(params.id, '', partial);
+      const batches = receiveForm.batches.map(batch => ({
+        itemId: batch.itemId,
+        quantity: batch.quantity,
+        expiryDate: batch.expiryDate || null,
+        notes: batch.notes || undefined,
+      }));
+
+      await api.receiveOrder(params.id, receiveForm.notes, receiveForm.partial, batches.length > 0 ? batches : undefined);
+      setReceiveForm({
+        notes: '',
+        partial: false,
+        batches: [],
+      });
+      setShowReceiveForm(false);
       await loadOrder();
       alert('تم استلام الأمر بنجاح');
     } catch (error: any) {
@@ -95,6 +110,21 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     } finally {
       setReceiving(false);
     }
+  };
+
+  const initializeReceiveForm = (partial: boolean) => {
+    const batches = order.items.map((item: any) => ({
+      itemId: item.itemId,
+      quantity: parseFloat(item.quantity.toString()),
+      expiryDate: '',
+      notes: '',
+    }));
+    setReceiveForm({
+      notes: '',
+      partial,
+      batches,
+    });
+    setShowReceiveForm(true);
   };
 
   const handleAddPayment = async (e: React.FormEvent) => {
@@ -129,6 +159,37 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     }
   };
 
+  const initializeGiftsForm = () => {
+    const gifts = order.items.map((item: any) => ({
+      itemId: item.itemId,
+      giftQty: parseFloat(item.giftQty?.toString() || '0'),
+    }));
+    setGiftsForm(gifts);
+    setShowGiftsForm(true);
+  };
+
+  const handleAddGifts = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddingGifts(true);
+    try {
+      const gifts = giftsForm.filter(g => g.giftQty > 0);
+      if (gifts.length === 0) {
+        alert('يرجى إدخال كمية هدية واحدة على الأقل');
+        setAddingGifts(false);
+        return;
+      }
+      await api.addProcOrderGifts(params.id, gifts);
+      setShowGiftsForm(false);
+      setGiftsForm([]);
+      await loadOrder();
+      alert('تم إضافة الهدايا بنجاح');
+    } catch (error: any) {
+      alert(error.message || 'فشل إضافة الهدايا');
+    } finally {
+      setAddingGifts(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-8">جاري التحميل...</div>;
   }
@@ -143,7 +204,22 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
       label: 'الصنف',
       render: (value: any) => value.name,
     },
-    { key: 'quantity', label: 'الكمية' },
+    { 
+      key: 'quantity', 
+      label: 'الكمية',
+      render: (value: any, row: any) => {
+        const giftQty = parseFloat(row.giftQty?.toString() || '0');
+        if (giftQty > 0) {
+          return (
+            <div>
+              <span>{formatNumber(value)}</span>
+              <span className="text-green-600 text-sm mr-2"> + {formatNumber(giftQty)} هدية</span>
+            </div>
+          );
+        }
+        return formatNumber(value);
+      },
+    },
     {
       key: 'unitCost',
       label: 'السعر',
@@ -185,7 +261,7 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
       key: 'method',
       label: 'طريقة الدفع',
       render: (value: string) => {
-        const methods = { CASH: 'نقدي', BANK: 'بنك', BANK_NILE: 'بنك النيل' };
+        const methods = { CASH: 'كاش', BANK: 'بنكك', BANK_NILE: 'بنك النيل' };
         return methods[value as keyof typeof methods] || value;
       },
     },
@@ -363,8 +439,8 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                 value={paymentForm.method}
                 onChange={(e) => setPaymentForm({ ...paymentForm, method: e.target.value })}
                 options={[
-                  { value: 'CASH', label: 'نقدي' },
-                  { value: 'BANK', label: 'بنك' },
+                  { value: 'CASH', label: 'كاش' },
+                  { value: 'BANK', label: 'بنكك' },
                   { value: 'BANK_NILE', label: 'بنك النيل' },
                 ]}
                 required
@@ -442,6 +518,78 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
           </Card>
         )}
 
+        {/* Add Gifts */}
+        {user?.role === 'MANAGER' && order.paymentConfirmed && order.status !== 'RECEIVED' && order.status !== 'CANCELLED' && (
+          <Card>
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-xl font-semibold">إضافة هدايا</h3>
+                <p className="text-gray-600 text-sm mt-1">
+                  يمكنك إضافة كميات هدايا للأصناف بعد تأكيد الدفع
+                </p>
+              </div>
+              {!showGiftsForm && (
+                <Button onClick={initializeGiftsForm}>
+                  إضافة/تعديل الهدايا
+                </Button>
+              )}
+            </div>
+
+            {showGiftsForm && (
+              <form onSubmit={handleAddGifts} className="space-y-4">
+                <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
+                  {giftsForm.map((gift, idx) => {
+                    const orderItem = order.items.find((item: any) => item.itemId === gift.itemId);
+                    return (
+                      <div key={gift.itemId} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                        <div className="font-semibold">
+                          {orderItem?.item?.name || gift.itemId}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            كمية الهدية
+                          </label>
+                          <Input
+                            type="number"
+                            value={gift.giftQty}
+                            onChange={(e) => {
+                              const newGifts = [...giftsForm];
+                              newGifts[idx].giftQty = parseFloat(e.target.value) || 0;
+                              setGiftsForm(newGifts);
+                            }}
+                            min="0"
+                            placeholder="0"
+                          />
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          الكمية الأساسية: {formatNumber(parseFloat(orderItem?.quantity.toString() || '0'))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={addingGifts}>
+                    {addingGifts ? 'جاري الحفظ...' : 'حفظ الهدايا'}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={() => {
+                      setShowGiftsForm(false);
+                      setGiftsForm([]);
+                    }}
+                    disabled={addingGifts}
+                  >
+                    إلغاء
+                  </Button>
+                </div>
+              </form>
+            )}
+          </Card>
+        )}
+
         {user?.role === 'INVENTORY' &&
           order.status !== 'RECEIVED' &&
           order.status !== 'CANCELLED' && (
@@ -455,20 +603,122 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                   </p>
                 </div>
               ) : (
-                <div className="flex gap-4">
-                  <Button 
-                    onClick={() => handleReceive(false)}
-                    disabled={receiving}
-                  >
-                    {receiving ? 'جاري الاستلام...' : 'استلام كامل'}
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    onClick={() => handleReceive(true)}
-                    disabled={receiving}
-                  >
-                    {receiving ? 'جاري الاستلام...' : 'استلام جزئي'}
-                  </Button>
+                <div className="space-y-4">
+                  {!showReceiveForm ? (
+                    <div className="flex gap-4">
+                      <Button 
+                        onClick={() => initializeReceiveForm(false)}
+                      >
+                        استلام كامل
+                      </Button>
+                      <Button 
+                        variant="secondary" 
+                        onClick={() => initializeReceiveForm(true)}
+                      >
+                        استلام جزئي
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-semibold text-blue-800 mb-2">
+                          {receiveForm.partial ? 'استلام جزئي' : 'استلام كامل'}
+                        </h4>
+                        <p className="text-blue-700 text-sm">
+                          أدخل تواريخ انتهاء الصلاحية للأصناف (اختياري)
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        {receiveForm.batches.map((batch, idx) => {
+                          const orderItem = order.items.find((item: any) => item.itemId === batch.itemId);
+                          return (
+                            <div key={batch.itemId} className="border rounded-lg p-4 bg-gray-50">
+                              <h5 className="font-semibold mb-2">
+                                {orderItem?.item?.name || batch.itemId}
+                              </h5>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    الكمية
+                                  </label>
+                                  <Input
+                                    type="number"
+                                    value={batch.quantity}
+                                    onChange={(e) => {
+                                      const newBatches = [...receiveForm.batches];
+                                      newBatches[idx].quantity = parseFloat(e.target.value) || 0;
+                                      setReceiveForm({ ...receiveForm, batches: newBatches });
+                                    }}
+                                    min="0"
+                                    max={parseFloat(orderItem?.quantity.toString() || '0')}
+                                    required
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    تاريخ انتهاء الصلاحية (اختياري)
+                                  </label>
+                                  <Input
+                                    type="date"
+                                    value={batch.expiryDate}
+                                    onChange={(e) => {
+                                      const newBatches = [...receiveForm.batches];
+                                      newBatches[idx].expiryDate = e.target.value;
+                                      setReceiveForm({ ...receiveForm, batches: newBatches });
+                                    }}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    ملاحظات (اختياري)
+                                  </label>
+                                  <Input
+                                    value={batch.notes || ''}
+                                    onChange={(e) => {
+                                      const newBatches = [...receiveForm.batches];
+                                      newBatches[idx].notes = e.target.value;
+                                      setReceiveForm({ ...receiveForm, batches: newBatches });
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          ملاحظات عامة (اختياري)
+                        </label>
+                        <Input
+                          value={receiveForm.notes}
+                          onChange={(e) => setReceiveForm({ ...receiveForm, notes: e.target.value })}
+                          placeholder="ملاحظات حول الاستلام..."
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={handleReceive}
+                          disabled={receiving}
+                        >
+                          {receiving ? 'جاري الاستلام...' : 'تأكيد الاستلام'}
+                        </Button>
+                        <Button 
+                          variant="secondary" 
+                          onClick={() => {
+                            setShowReceiveForm(false);
+                            setReceiveForm({ notes: '', partial: false, batches: [] });
+                          }}
+                          disabled={receiving}
+                        >
+                          إلغاء
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </Card>

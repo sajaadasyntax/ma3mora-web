@@ -41,11 +41,14 @@ export default function DashboardLayout({
 
   const checkOpeningBalance = async () => {
     try {
-      const balances = await api.getOpeningBalances({ scope: 'CASHBOX' });
-      setHasOpeningBalance(balances.length > 0);
+      // Use optimized balance status endpoint
+      const status = await api.getBalanceStatus();
+      // Check if balance is open (support both old and new response formats)
+      const isOpen = status.isOpen || (status.balances && Object.values(status.balances).some((v: any) => v > 0));
+      setHasOpeningBalance(isOpen);
       
       // Redirect to opening balance page if none exists and not already there
-      if (balances.length === 0 && pathname !== '/dashboard/accounting/opening-balance') {
+      if (!isOpen && pathname !== '/dashboard/accounting/opening-balance') {
         router.push('/dashboard/accounting/opening-balance');
       }
     } catch (error) {
@@ -85,7 +88,7 @@ export default function DashboardLayout({
               يجب فتح حساب أولاً
             </h1>
             <p className="text-gray-600 mb-6">
-              لا يمكنك الوصول للنظام قبل إدخال رأس المال الافتتاحي (كاش، بنك، فوري)
+              لا يمكنك الوصول للنظام قبل إدخال رأس المال الافتتاحي (كاش، بنكك، بنك النيل)
             </p>
             <button
               onClick={() => router.push('/dashboard/accounting/opening-balance')}

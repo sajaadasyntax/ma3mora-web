@@ -25,7 +25,10 @@ async function fetchAPI(endpoint: string, options: FetchOptions = {}) {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'خطأ في الاتصال' }));
-    throw new Error(error.error || 'حدث خطأ');
+    const err = new Error(error.error || 'حدث خطأ') as any;
+    err.error = error.error || 'حدث خطأ';
+    err.existingTransaction = error.existingTransaction;
+    throw err;
   }
 
   return response.json();
@@ -46,8 +49,23 @@ export const api = {
   // Inventories
   getInventories: () => fetchAPI('/inventories'),
   
-  getInventoryStocks: (id: string, section?: string) =>
-    fetchAPI(`/inventories/${id}/stocks`, { params: section ? { section } : undefined }),
+  getInventoryStocks: (inventoryId: string, params?: any) =>
+    fetchAPI(`/inventories/${inventoryId}/stocks`, { params }),
+
+  getInventoryTransfers: (params?: any) =>
+    fetchAPI('/inventories/transfers', { params }),
+  
+  createInventoryTransfer: (data: any) =>
+    fetchAPI('/inventories/transfers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getInventoryTransfer: (id: string) =>
+    fetchAPI(`/inventories/transfers/${id}`),
+
+  getStockMovements: (params?: any) =>
+    fetchAPI('/inventories/stock-movements', { params }),
 
   // Items
   getItems: (section?: string) =>
@@ -151,10 +169,16 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  receiveOrder: (id: string, notes?: string, partial?: boolean) =>
+  receiveOrder: (id: string, notes?: string, partial?: boolean, batches?: any[]) =>
     fetchAPI(`/procurement/orders/${id}/receive`, {
       method: 'POST',
-      body: JSON.stringify({ notes, partial }),
+      body: JSON.stringify({ notes, partial, batches }),
+    }),
+
+  addProcOrderGifts: (id: string, gifts: Array<{ itemId: string; giftQty: number }>) =>
+    fetchAPI(`/procurement/orders/${id}/add-gifts`, {
+      method: 'POST',
+      body: JSON.stringify({ gifts }),
     }),
 
   // Accounting
@@ -202,6 +226,15 @@ export const api = {
 
   getDailyReport: (date?: string) =>
     fetchAPI('/accounting/daily-report', { params: date ? { date } : undefined }),
+
+  getCashExchanges: () =>
+    fetchAPI('/accounting/cash-exchanges'),
+  
+  createCashExchange: (data: any) =>
+    fetchAPI('/accounting/cash-exchanges', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 
   // Employees
   getEmployees: () => fetchAPI('/employees'),
@@ -256,8 +289,18 @@ export const api = {
   // Reports
   getSalesReports: (params?: any) =>
     fetchAPI('/sales/reports', { params }),
+
+  getDailySalesByItem: (params?: any) =>
+    fetchAPI('/sales/reports/daily-by-item', { params }),
   
   getProcurementReports: (params?: any) =>
     fetchAPI('/procurement/reports', { params }),
+
+  // Expiry Management
+  getExpiryAlerts: (days?: number) =>
+    fetchAPI('/inventories/expiry-alerts', { params: days ? { days: days.toString() } : undefined }),
+  
+  getStockBatches: (inventoryId: string, itemId: string) =>
+    fetchAPI(`/inventories/${inventoryId}/stocks/${itemId}/batches`),
 };
 

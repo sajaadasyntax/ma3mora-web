@@ -39,7 +39,10 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
     method: 'CASH',
     notes: '',
     receiptUrl: '',
+    receiptNumber: '',
   });
+  const [receiptImage, setReceiptImage] = useState<File | null>(null);
+  const [duplicateError, setDuplicateError] = useState<any>(null);
   const isAuditor = useIsAuditor();
 
   useEffect(() => {
@@ -76,22 +79,44 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
     }
   };
 
+  const handleReceiptImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setReceiptImage(file);
+      // Create a local URL for preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPaymentData({ ...paymentData, receiptUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittingPayment(true);
+    setDuplicateError(null);
+    
     try {
       await api.addPayment(params.id, {
         amount: parseFloat(paymentData.amount),
         method: paymentData.method,
         notes: paymentData.notes,
         receiptUrl: paymentData.receiptUrl,
+        receiptNumber: paymentData.method !== 'CASH' ? paymentData.receiptNumber : undefined,
       });
       setShowPaymentForm(false);
-      setPaymentData({ amount: '', method: 'CASH', notes: '', receiptUrl: '' });
+      setPaymentData({ amount: '', method: 'CASH', notes: '', receiptUrl: '', receiptNumber: '' });
+      setReceiptImage(null);
       await loadInvoice();
       alert('تم تسجيل الدفعة بنجاح');
     } catch (error: any) {
-      alert(error.message || 'فشل تسجيل الدفعة');
+      // Check if error has existing transaction details
+      if (error.existingTransaction) {
+        setDuplicateError({ error: error.error || error.message, existingTransaction: error.existingTransaction });
+        return;
+      }
+      alert(error.message || error.error || 'فشل تسجيل الدفعة');
     } finally {
       setSubmittingPayment(false);
     }
@@ -159,6 +184,14 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
       key: 'method',
       label: 'طريقة الدفع',
       render: (value: string) => paymentMethodLabels[value] || value,
+    },
+    {
+      key: 'receiptNumber',
+      label: 'رقم الإيصال',
+      render: (value: string, row: any) => {
+        if (row.method === 'CASH') return '-';
+        return value || 'غير متوفر';
+      },
     },
     {
       key: 'receiptUrl',
@@ -353,6 +386,48 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
              {!isAuditor && showPaymentForm && (
             <form onSubmit={handlePayment} className="mt-4 p-4 border rounded-lg bg-gray-50">
               <h4 className="font-semibold mb-3">تسجيل دفعة جديدة</h4>
+              
+              {duplicateError && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800 font-semibold mb-2">{duplicateError.error}</p>
+                  {duplicateError.existingTransaction && (
+                    <div className="text-sm text-red-700">
+                      <p className="font-semibold mb-1">تفاصيل المعاملة السابقة:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        {duplicateError.existingTransaction.invoiceNumber && (
+                          <li>رقم الفاتورة: {duplicateError.existingTransaction.invoiceNumber}</li>
+                        )}
+                        {duplicateError.existingTransaction.customer && (
+                          <li>العميل: {duplicateError.existingTransaction.customer}</li>
+                        )}
+                        <li>المبلغ: {formatCurrency(parseFloat(duplicateError.existingTransaction.amount))}</li>
+                        <li>رقم الإيصال: {duplicateError.existingTransaction.receiptNumber}</li>
+                        {duplicateError.existingTransaction.paidAt && (
+                          <li>التاريخ: {formatDateTime(duplicateError.existingTransaction.paidAt)}</li>
+                        )}
+                        {duplicateError.existingTransaction.createdAt && (
+                          <li>التاريخ: {formatDateTime(duplicateError.existingTransaction.createdAt)}</li>
+                        )}
+                        {duplicateError.existingTransaction.recordedBy && (
+                          <li>بواسطة: {duplicateError.existingTransaction.recordedBy}</li>
+                        )}
+                        {duplicateError.existingTransaction.createdBy && (
+                          <li>بواسطة: {duplicateError.existingTransaction.createdBy}</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setDuplicateError(null)}
+                    className="mt-2"
+                  >
+                    إغلاق
+                  </Button>
+                </div>
+              )}
+
               <Input
                 label={`المبلغ (الحد الأقصى: ${formatCurrency(remainingAmount)})`}
                 type="number"
@@ -377,13 +452,41 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                 </select>
               </div>
               {paymentData.method !== 'CASH' && (
-                <Input
-                  label="رابط إيصال الدفع (مطلوب للدفع غير النقدي)"
-                  value={paymentData.receiptUrl}
-                  onChange={(e) => setPaymentData({ ...paymentData, receiptUrl: e.target.value })}
-                  placeholder="أدخل رابط إيصال الدفع"
-                  required
-                />
+                <>
+                  <Input
+                    label="رقم الإيصال (مطلوب)"
+                    value={paymentData.receiptNumber}
+                    onChange={(e) => setPaymentData({ ...paymentData, receiptNumber: e.target.value })}
+                    placeholder="أدخل رقم الإيصال"
+                    required
+                  />
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      صورة الإيصال (اختياري)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleReceiptImageChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    {receiptImage && (
+                      <div className="mt-2">
+                        <img 
+                          src={paymentData.receiptUrl} 
+                          alt="Receipt preview" 
+                          className="max-w-xs max-h-48 object-contain border rounded"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <Input
+                    label="رابط إيصال الدفع (اختياري إذا تم رفع صورة)"
+                    value={paymentData.receiptUrl}
+                    onChange={(e) => setPaymentData({ ...paymentData, receiptUrl: e.target.value })}
+                    placeholder="أدخل رابط إيصال الدفع"
+                  />
+                </>
               )}
               <Input
                 label="ملاحظات (اختياري)"
@@ -402,7 +505,9 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                   variant="secondary"
                   onClick={() => {
                     setShowPaymentForm(false);
-                    setPaymentData({ amount: '', method: 'CASH', notes: '', receiptUrl: '' });
+                    setPaymentData({ amount: '', method: 'CASH', notes: '', receiptUrl: '', receiptNumber: '' });
+                    setReceiptImage(null);
+                    setDuplicateError(null);
                   }}
                   disabled={submittingPayment}
                 >

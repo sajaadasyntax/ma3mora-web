@@ -66,6 +66,7 @@ export default function EmployeesPage() {
     amount: '',
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear(),
+    paymentMethod: 'CASH' as 'CASH' | 'BANK' | 'BANK_NILE',
     notes: '',
   });
 
@@ -73,6 +74,7 @@ export default function EmployeesPage() {
     employeeId: '',
     amount: '',
     reason: '',
+    paymentMethod: 'CASH' as 'CASH' | 'BANK' | 'BANK_NILE',
     notes: '',
   });
 
@@ -126,7 +128,7 @@ export default function EmployeesPage() {
         ...salaryForm,
         amount: parseFloat(salaryForm.amount),
       });
-      setSalaryForm({ employeeId: '', amount: '', month: new Date().getMonth() + 1, year: new Date().getFullYear(), notes: '' });
+      setSalaryForm({ employeeId: '', amount: '', month: new Date().getMonth() + 1, year: new Date().getFullYear(), paymentMethod: 'CASH', notes: '' });
       setShowAddSalary(false);
       if (selectedEmployee) {
         loadEmployeeDetails(selectedEmployee.id);
@@ -143,7 +145,7 @@ export default function EmployeesPage() {
         ...advanceForm,
         amount: parseFloat(advanceForm.amount),
       });
-      setAdvanceForm({ employeeId: '', amount: '', reason: '', notes: '' });
+      setAdvanceForm({ employeeId: '', amount: '', reason: '', paymentMethod: 'CASH', notes: '' });
       setShowAddAdvance(false);
       if (selectedEmployee) {
         loadEmployeeDetails(selectedEmployee.id);
@@ -395,6 +397,16 @@ export default function EmployeesPage() {
                   required
                 />
               </div>
+              <Select
+                label="طريقة الدفع"
+                value={salaryForm.paymentMethod}
+                onChange={(e) => setSalaryForm({ ...salaryForm, paymentMethod: e.target.value as 'CASH' | 'BANK' | 'BANK_NILE' })}
+                options={[
+                  { value: 'CASH', label: 'كاش' },
+                  { value: 'BANK', label: 'بنكك' },
+                  { value: 'BANK_NILE', label: 'بنك النيل' },
+                ]}
+              />
               <Input
                 label="ملاحظات"
                 value={salaryForm.notes}
@@ -439,6 +451,16 @@ export default function EmployeesPage() {
                 value={advanceForm.reason}
                 onChange={(e) => setAdvanceForm({ ...advanceForm, reason: e.target.value })}
                 required
+              />
+              <Select
+                label="طريقة الدفع"
+                value={advanceForm.paymentMethod}
+                onChange={(e) => setAdvanceForm({ ...advanceForm, paymentMethod: e.target.value as 'CASH' | 'BANK' | 'BANK_NILE' })}
+                options={[
+                  { value: 'CASH', label: 'كاش' },
+                  { value: 'BANK', label: 'بنكك' },
+                  { value: 'BANK_NILE', label: 'بنك النيل' },
+                ]}
               />
               <Input
                 label="ملاحظات"

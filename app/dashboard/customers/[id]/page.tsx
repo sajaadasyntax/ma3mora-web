@@ -7,6 +7,7 @@ import Card from '@/components/Card';
 import Table from '@/components/Table';
 import Button from '@/components/Button';
 import { formatCurrency, formatDateTime, customerTypeLabels, sectionLabels, paymentStatusLabels } from '@/lib/utils';
+import { generateCustomerReportPDF } from '@/lib/pdfUtils';
 
 interface PageProps {
   params: {
@@ -124,6 +125,14 @@ export default function CustomerDetailPage({ params }: PageProps) {
         <div>
           <Button variant="secondary" onClick={() => router.push('/dashboard/customers')}>
             ← رجوع
+          </Button>
+        </div>
+        <div>
+          <Button
+            onClick={() => generateCustomerReportPDF(customer)}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            📄 طباعة تقرير العميل
           </Button>
         </div>
       </div>

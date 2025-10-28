@@ -877,6 +877,173 @@ export function generateDailyReportPDF(reportData: any) {
   generatePDF(htmlContent, `التقرير_اليومي_${reportData.date}`);
 }
 
+export function generateCustomerReportPDF(customer: any) {
+  const currentDate = new Date().toLocaleDateString('ar-SD', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  // Get all items from all invoices with payment method info
+  const allItems: any[] = [];
+  const paymentMethodLabels: any = {
+    'CASH': 'كاش',
+    'BANK': 'بنكك',
+    'BANK_NILE': 'بنك النيل'
+  };
+
+  customer.salesInvoices?.forEach((invoice: any) => {
+    invoice.items?.forEach((invoiceItem: any) => {
+      // Determine payment method - if invoice has multiple payment methods, mark as "متعدد"
+      let paymentMethod = paymentMethodLabels[invoice.paymentMethod] || invoice.paymentMethod;
+      
+      // Check if invoice has multiple payments with different methods
+      if (invoice.payments && invoice.payments.length > 1) {
+        const uniqueMethods = new Set(invoice.payments.map((p: any) => p.method));
+        if (uniqueMethods.size > 1) {
+          paymentMethod = 'متعدد';
+        } else if (invoice.payments.length > 0) {
+          paymentMethod = paymentMethodLabels[invoice.payments[0].method] || invoice.payments[0].method;
+        }
+      } else if (invoice.payments && invoice.payments.length === 1) {
+        paymentMethod = paymentMethodLabels[invoice.payments[0].method] || invoice.payments[0].method;
+      }
+
+      allItems.push({
+        itemName: invoiceItem.item.name,
+        quantity: invoiceItem.quantity,
+        unitPrice: invoiceItem.unitPrice,
+        lineTotal: invoiceItem.lineTotal,
+        paymentMethod: paymentMethod,
+        invoiceNumber: invoice.invoiceNumber,
+        date: invoice.createdAt
+      });
+    });
+  });
+
+  // Calculate totals
+  const totalSales = customer.salesInvoices?.reduce((sum: number, inv: any) => 
+    sum + parseFloat(inv.total), 0) || 0;
+  
+  const totalPaid = customer.salesInvoices?.reduce((sum: number, inv: any) => 
+    sum + parseFloat(inv.paidAmount), 0) || 0;
+
+  const outstandingBalance = totalSales - totalPaid;
+
+  const htmlContent = `
+    <div class="header">
+      <h1>تقرير العميل</h1>
+      <div class="date">اسم العميل: ${customer.name} | تاريخ التقرير: ${currentDate}</div>
+    </div>
+
+    <div class="section">
+      <h2>معلومات العميل</h2>
+      <table>
+        <tr>
+          <th>الاسم</th>
+          <td>${customer.name}</td>
+          <th>النوع</th>
+          <td>${customer.type === 'WHOLESALE' ? 'جملة' : 'مفرق'}</td>
+        </tr>
+        <tr>
+          <th>القسم</th>
+          <td>${customer.division === 'GROCERY' ? 'بقالة' : 'أفران'}</td>
+          ${customer.phone ? `<th>رقم الهاتف</th><td>${customer.phone}</td>` : ''}
+        </tr>
+        ${customer.address ? `
+        <tr>
+          <th>العنوان</th>
+          <td colspan="3">${customer.address}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>الملخص المالي</h2>
+      <div class="summary">
+        <div class="summary-row">
+          <span>إجمالي المبيعات:</span>
+          <span class="amount">${formatCurrency(totalSales)}</span>
+        </div>
+        <div class="summary-row">
+          <span>المدفوع:</span>
+          <span class="amount positive">${formatCurrency(totalPaid)}</span>
+        </div>
+        <div class="summary-row total">
+          <span>المتبقي (ذمم مدينة):</span>
+          <span class="amount ${outstandingBalance > 0 ? 'negative' : 'positive'}">${formatCurrency(outstandingBalance)}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>تفاصيل الأصناف المباعة</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>الصنف</th>
+            <th>الكمية</th>
+            <th>السعر</th>
+            <th>المبلغ</th>
+            <th>طريقة الدفع</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${allItems.map((item: any) => `
+            <tr>
+              <td>${item.itemName}</td>
+              <td>${item.quantity}</td>
+              <td>${formatCurrency(item.unitPrice)}</td>
+              <td>${formatCurrency(item.lineTotal)}</td>
+              <td>${item.paymentMethod}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    ${customer.salesInvoices && customer.salesInvoices.length > 0 ? `
+    <div class="section">
+      <h2>ملخص الفواتير</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>رقم الفاتورة</th>
+            <th>التاريخ</th>
+            <th>المجموع</th>
+            <th>المدفوع</th>
+            <th>المتبقي</th>
+            <th>حالة الدفع</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${customer.salesInvoices.map((invoice: any) => {
+            const remaining = parseFloat(invoice.total) - parseFloat(invoice.paidAmount);
+            return `
+            <tr>
+              <td>${invoice.invoiceNumber}</td>
+              <td>${new Date(invoice.createdAt).toLocaleDateString('ar-SD')}</td>
+              <td>${formatCurrency(invoice.total)}</td>
+              <td>${formatCurrency(invoice.paidAmount)}</td>
+              <td class="${remaining > 0 ? 'negative' : ''}">${formatCurrency(remaining)}</td>
+              <td>${invoice.paymentStatus === 'PAID' ? 'مدفوعة' : invoice.paymentStatus === 'PARTIAL' ? 'جزئية' : 'آجلة'}</td>
+            </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    ` : ''}
+
+    <div class="footer">
+      <p>تم إنشاء هذا التقرير في ${new Date().toLocaleString('ar-SD')}</p>
+    </div>
+  `;
+
+  generatePDF(htmlContent, `تقرير_${customer.name}`);
+}
+
 // Helper function to format currency
 function formatCurrency(amount: number | string): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;

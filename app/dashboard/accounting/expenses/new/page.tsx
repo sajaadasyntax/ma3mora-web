@@ -92,7 +92,8 @@ export default function NewExpensePage() {
                   onChange={(e) => setFormData({ ...formData, method: e.target.value })}
                   options={[
                     { value: 'CASH', label: '💵 كاش' },
-                    { value: 'BANK', label: '🏦 بنك' },
+                    { value: 'BANK', label: '🏦 بنكك' },
+                    { value: 'BANK_NILE', label: '🏦 بنك النيل' },
                   ]}
                 />
 
@@ -131,7 +132,7 @@ export default function NewExpensePage() {
               <div className="bg-white p-3 rounded">
                 <p className="text-sm text-gray-600">طريقة الدفع</p>
                 <p className="font-semibold">
-                  {formData.method === 'CASH' ? '💵 كاش' : '🏦 بنك'}
+                  {formData.method === 'CASH' ? '💵 كاش' : formData.method === 'BANK' ? '🏦 بنكك' : '🏦 بنك النيل'}
                 </p>
               </div>
             </div>

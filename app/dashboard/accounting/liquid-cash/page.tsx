@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDateTime, paymentMethodLabels } from '@/lib/utils';
 import { generateLiquidCashPDF } from '@/lib/pdfUtils';
 
 export default function LiquidCashPage() {
@@ -98,44 +98,122 @@ export default function LiquidCashPage() {
           <div className="space-y-4">
             <div className="bg-green-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold text-green-800 mb-2">النقدية (كاش)</h3>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-700">إجمالي الإيرادات:</span>
                 <span className="text-xl font-bold text-green-600">
                   {formatCurrency(liquidData.payments.cash.total)}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm text-gray-600">
+              <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
                 <span>عدد الدفعات:</span>
                 <span>{liquidData.payments.cash.count} دفعة</span>
               </div>
+              {/* Items Details */}
+              {liquidData.payments.cash.items && liquidData.payments.cash.items.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-green-200">
+                  <h4 className="text-sm font-semibold text-green-800 mb-2">الأصناف المباعة:</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="text-right">
+                          <th className="px-2 py-1 text-xs font-medium text-green-700">الصنف</th>
+                          <th className="px-2 py-1 text-xs font-medium text-green-700">الكمية</th>
+                          <th className="px-2 py-1 text-xs font-medium text-green-700">الإجمالي</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {liquidData.payments.cash.items.map((item: any, idx: number) => (
+                          <tr key={idx} className="border-t border-green-100">
+                            <td className="px-2 py-1 text-green-900">{item.name}</td>
+                            <td className="px-2 py-1 text-green-700">{item.quantity}</td>
+                            <td className="px-2 py-1 text-green-700 font-medium">{formatCurrency(item.totalAmount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-blue-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold text-blue-800 mb-2">بنكك</h3>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-700">إجمالي الإيرادات:</span>
                 <span className="text-xl font-bold text-blue-600">
                   {formatCurrency(liquidData.payments.bank.total)}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm text-gray-600">
+              <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
                 <span>عدد الدفعات:</span>
                 <span>{liquidData.payments.bank.count} دفعة</span>
               </div>
+              {/* Items Details */}
+              {liquidData.payments.bank.items && liquidData.payments.bank.items.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <h4 className="text-sm font-semibold text-blue-800 mb-2">الأصناف المباعة:</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="text-right">
+                          <th className="px-2 py-1 text-xs font-medium text-blue-700">الصنف</th>
+                          <th className="px-2 py-1 text-xs font-medium text-blue-700">الكمية</th>
+                          <th className="px-2 py-1 text-xs font-medium text-blue-700">الإجمالي</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {liquidData.payments.bank.items.map((item: any, idx: number) => (
+                          <tr key={idx} className="border-t border-blue-100">
+                            <td className="px-2 py-1 text-blue-900">{item.name}</td>
+                            <td className="px-2 py-1 text-blue-700">{item.quantity}</td>
+                            <td className="px-2 py-1 text-blue-700 font-medium">{formatCurrency(item.totalAmount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-purple-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold text-purple-800 mb-2">بنك النيل</h3>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-700">إجمالي الإيرادات:</span>
                 <span className="text-xl font-bold text-purple-600">
                   {formatCurrency(liquidData.payments.bankNile.total)}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm text-gray-600">
+              <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
                 <span>عدد الدفعات:</span>
                 <span>{liquidData.payments.bankNile.count} دفعة</span>
               </div>
+              {/* Items Details */}
+              {liquidData.payments.bankNile.items && liquidData.payments.bankNile.items.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-purple-200">
+                  <h4 className="text-sm font-semibold text-purple-800 mb-2">الأصناف المباعة:</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="text-right">
+                          <th className="px-2 py-1 text-xs font-medium text-purple-700">الصنف</th>
+                          <th className="px-2 py-1 text-xs font-medium text-purple-700">الكمية</th>
+                          <th className="px-2 py-1 text-xs font-medium text-purple-700">الإجمالي</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {liquidData.payments.bankNile.items.map((item: any, idx: number) => (
+                          <tr key={idx} className="border-t border-purple-100">
+                            <td className="px-2 py-1 text-purple-900">{item.name}</td>
+                            <td className="px-2 py-1 text-purple-700">{item.quantity}</td>
+                            <td className="px-2 py-1 text-purple-700 font-medium">{formatCurrency(item.totalAmount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-300">
@@ -158,48 +236,152 @@ export default function LiquidCashPage() {
           <div className="space-y-4">
             <div className="bg-red-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold text-red-800 mb-2">النقدية (كاش)</h3>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-700">إجمالي المنصرفات:</span>
                 <span className="text-xl font-bold text-red-600">
                   {formatCurrency(liquidData.expenses.cash.total)}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm text-gray-600">
+              <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
                 <span>عدد المنصرفات:</span>
                 <span>{liquidData.expenses.cash.count} منصرف</span>
               </div>
+              {/* Expense Items */}
+              {liquidData.expenses.cash.items && liquidData.expenses.cash.items.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-red-200">
+                  <h4 className="text-sm font-semibold text-red-800 mb-2">تفاصيل المنصرفات:</h4>
+                  <div className="space-y-1">
+                    {liquidData.expenses.cash.items.slice(0, 5).map((expense: any, idx: number) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className="text-red-800">{expense.description}</span>
+                        <span className="text-red-600 font-medium">{formatCurrency(expense.amount)}</span>
+                      </div>
+                    ))}
+                    {liquidData.expenses.cash.items.length > 5 && (
+                      <div className="text-xs text-red-600 mt-1">
+                        و {liquidData.expenses.cash.items.length - 5} منصرف آخر...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-orange-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold text-orange-800 mb-2">بنكك</h3>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-700">إجمالي المنصرفات:</span>
                 <span className="text-xl font-bold text-orange-600">
                   {formatCurrency(liquidData.expenses.bank.total)}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm text-gray-600">
+              <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
                 <span>عدد المنصرفات:</span>
                 <span>{liquidData.expenses.bank.count} منصرف</span>
               </div>
+              {/* Expense Items */}
+              {liquidData.expenses.bank.items && liquidData.expenses.bank.items.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-orange-200">
+                  <h4 className="text-sm font-semibold text-orange-800 mb-2">تفاصيل المنصرفات:</h4>
+                  <div className="space-y-1">
+                    {liquidData.expenses.bank.items.slice(0, 5).map((expense: any, idx: number) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className="text-orange-800">{expense.description}</span>
+                        <span className="text-orange-600 font-medium">{formatCurrency(expense.amount)}</span>
+                      </div>
+                    ))}
+                    {liquidData.expenses.bank.items.length > 5 && (
+                      <div className="text-xs text-orange-600 mt-1">
+                        و {liquidData.expenses.bank.items.length - 5} منصرف آخر...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="bg-pink-50 p-4 rounded-lg">
               <h3 className="text-lg font-semibold text-pink-800 mb-2">بنك النيل</h3>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-700">إجمالي المنصرفات:</span>
                 <span className="text-xl font-bold text-pink-600">
                   {formatCurrency(liquidData.expenses.bankNile.total)}
                 </span>
               </div>
-              <div className="flex justify-between items-center text-sm text-gray-600">
+              <div className="flex justify-between items-center text-sm text-gray-600 mb-3">
                 <span>عدد المنصرفات:</span>
                 <span>{liquidData.expenses.bankNile.count} منصرف</span>
               </div>
+              {/* Expense Items */}
+              {liquidData.expenses.bankNile.items && liquidData.expenses.bankNile.items.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-pink-200">
+                  <h4 className="text-sm font-semibold text-pink-800 mb-2">تفاصيل المنصرفات:</h4>
+                  <div className="space-y-1">
+                    {liquidData.expenses.bankNile.items.slice(0, 5).map((expense: any, idx: number) => (
+                      <div key={idx} className="flex justify-between text-sm">
+                        <span className="text-pink-800">{expense.description}</span>
+                        <span className="text-pink-600 font-medium">{formatCurrency(expense.amount)}</span>
+                      </div>
+                    ))}
+                    {liquidData.expenses.bankNile.items.length > 5 && (
+                      <div className="text-xs text-pink-600 mt-1">
+                        و {liquidData.expenses.bankNile.items.length - 5} منصرف آخر...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Card>
       </div>
+
+      {/* Procurement Items */}
+      {liquidData.procurement && liquidData.procurement.items && liquidData.procurement.items.length > 0 && (
+        <Card className="mt-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">
+            الأصناف المشتراة (المشتريات)
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    الصنف
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    الكمية
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    تكلفة الوحدة
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    الإجمالي
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {liquidData.procurement.items.map((item: any, idx: number) => (
+                  <tr key={idx}>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {item.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {item.quantity}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatCurrency(item.unitPrice)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatCurrency(item.totalAmount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Net Summary */}
       <Card className="mt-6">
