@@ -94,10 +94,31 @@ export default function InventoryTransfersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form data before submission
+    if (!form.fromInventoryId || !form.toInventoryId || !form.itemId) {
+      alert('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+    
+    const quantity = parseFloat(form.quantity);
+    if (isNaN(quantity) || quantity <= 0) {
+      alert('يرجى إدخال كمية صالحة أكبر من صفر');
+      return;
+    }
+    
+    if (quantity > availableQtyNum) {
+      alert(`الكمية المطلوبة (${formatNumber(quantity)}) تتجاوز الكمية المتاحة (${formatNumber(availableQtyNum)})`);
+      return;
+    }
+    
     try {
       await api.createInventoryTransfer({
-        ...form,
-        quantity: parseFloat(form.quantity),
+        fromInventoryId: form.fromInventoryId,
+        toInventoryId: form.toInventoryId,
+        itemId: form.itemId,
+        quantity: quantity,
+        notes: form.notes || undefined,
       });
       alert('تم نقل الأصناف بنجاح');
       setForm({
@@ -111,7 +132,9 @@ export default function InventoryTransfersPage() {
       loadTransfers();
       loadSourceStocks();
     } catch (error: any) {
-      alert(error.message || 'فشل نقل الأصناف');
+      const errorMessage = error?.error || error?.message || 'فشل نقل الأصناف';
+      alert(errorMessage);
+      console.error('Transfer error:', error);
     }
   };
 
