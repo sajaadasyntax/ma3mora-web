@@ -117,6 +117,7 @@ export default function DashboardLayout({
     { name: 'الموظفين', href: '/dashboard/employees', roles: ['ACCOUNTANT', 'MANAGER'] },
     { name: 'المحاسبة', href: '/dashboard/accounting', roles: ['ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
     { name: 'الإيرادات والمنصرفات', href: '/dashboard/accounting/daily-income-loss', roles: ['ACCOUNTANT', 'MANAGER'] },
+    { name: 'العمولات', href: '/dashboard/accounting/commission', roles: ['ACCOUNTANT', 'MANAGER'] },
     { name: 'تقرير المتأخرات', href: '/dashboard/accounting/outstanding-fees', roles: ['ACCOUNTANT', 'MANAGER'] },
     { name: 'سجلات التدقيق', href: '/dashboard/audit', roles: ['AUDITOR', 'ACCOUNTANT', 'MANAGER'] },
   ];
