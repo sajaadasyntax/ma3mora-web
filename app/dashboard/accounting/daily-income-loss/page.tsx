@@ -141,9 +141,6 @@ export default function DailyIncomeLossPage() {
                 if (inc.type === 'SALES_PAYMENT') {
                   details = `فاتورة: ${inc.details.invoiceNumber}<br/>العميل: ${inc.details.customer}<br/>المخزن: ${inc.details.inventory}`;
                   if (inc.details.receiptNumber) details += `<br/>رقم الإيصال: ${inc.details.receiptNumber}`;
-                } else if (inc.type === 'CASH_EXCHANGE') {
-                  details = inc.details.description || '';
-                  if (inc.details.receiptNumber) details += `<br/>رقم الإيصال: ${inc.details.receiptNumber}`;
                 }
                 if (inc.details.notes) details += `<br/>ملاحظات: ${inc.details.notes}`;
                 return `
@@ -187,9 +184,6 @@ export default function DailyIncomeLossPage() {
                   details = `الموظف: ${loss.details.employee}<br/>المنصب: ${loss.details.position}<br/>الشهر: ${loss.details.month}/${loss.details.year}`;
                 } else if (loss.type === 'ADVANCE') {
                   details = `الموظف: ${loss.details.employee}<br/>المنصب: ${loss.details.position}<br/>السبب: ${loss.details.reason}`;
-                } else if (loss.type === 'CASH_EXCHANGE') {
-                  details = loss.details.description || '';
-                  if (loss.details.receiptNumber) details += `<br/>رقم الإيصال: ${loss.details.receiptNumber}`;
                 }
                 if (loss.details.notes) details += `<br/>ملاحظات: ${loss.details.notes}`;
                 return `
@@ -206,8 +200,46 @@ export default function DailyIncomeLossPage() {
               ${day.losses.length === 0 ? '<tr><td colspan="6" class="text-center">لا توجد منصرفات</td></tr>' : ''}
             </tbody>
           </table>
-        </div>
-      `;
+        ` : ''}
+        
+        ${day.transfers && day.transfers.length > 0 ? `
+          <h3>التحويلات بين الحسابات (${day.transfers.length} معاملة)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>النوع</th>
+                <th>المبلغ</th>
+                <th>من → إلى</th>
+                <th>التاريخ</th>
+                <th>التفاصيل</th>
+                <th>سجل بواسطة</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${day.transfers.map((transfer: any) => {
+                let details = '';
+                if (transfer.details.receiptNumber) {
+                  details = `رقم الإيصال: ${transfer.details.receiptNumber}`;
+                }
+                if (transfer.details.notes) {
+                  details += details ? ` | ${transfer.details.notes}` : transfer.details.notes;
+                }
+                return `
+                  <tr>
+                    <td>${transfer.typeLabel}</td>
+                    <td>${formatCurrency(parseFloat(transfer.amount))}</td>
+                    <td>${paymentMethodLabels[transfer.fromMethod] || transfer.fromMethod} → ${paymentMethodLabels[transfer.toMethod] || transfer.toMethod}</td>
+                    <td>${new Date(transfer.date).toLocaleTimeString('ar-SD', { hour: '2-digit', minute: '2-digit' })}</td>
+                    <td>${details || '-'}</td>
+                    <td>${transfer.recordedBy}</td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        ` : ''}
+      </div>
+    `;
     });
 
     html += `
@@ -491,9 +523,6 @@ export default function DailyIncomeLossPage() {
                           if (inc.type === 'SALES_PAYMENT') {
                             details = `فاتورة: ${inc.details.invoiceNumber} | العميل: ${inc.details.customer}`;
                             if (inc.details.receiptNumber) details += ` | رقم الإيصال: ${inc.details.receiptNumber}`;
-                          } else if (inc.type === 'CASH_EXCHANGE') {
-                            details = inc.details.description || '';
-                            if (inc.details.receiptNumber) details += ` | رقم الإيصال: ${inc.details.receiptNumber}`;
                           }
                           return (
                             <tr key={inc.id}>
@@ -519,7 +548,7 @@ export default function DailyIncomeLossPage() {
               </div>
 
               {/* Loss Transactions */}
-              <div>
+              <div className="mb-6">
                 <h4 className="text-lg font-medium mb-3 text-red-700">
                   المنصرفات ({day.losses.length})
                 </h4>
@@ -549,9 +578,6 @@ export default function DailyIncomeLossPage() {
                             details = `الموظف: ${loss.details.employee} | الشهر: ${loss.details.month}/${loss.details.year}`;
                           } else if (loss.type === 'ADVANCE') {
                             details = `الموظف: ${loss.details.employee} | السبب: ${loss.details.reason}`;
-                          } else if (loss.type === 'CASH_EXCHANGE') {
-                            details = loss.details.description || '';
-                            if (loss.details.receiptNumber) details += ` | رقم الإيصال: ${loss.details.receiptNumber}`;
                           }
                           return (
                             <tr key={loss.id}>
@@ -575,6 +601,62 @@ export default function DailyIncomeLossPage() {
                   <p className="text-gray-500 text-center py-4">لا توجد منصرفات لهذا اليوم</p>
                 )}
               </div>
+
+              {/* Cash Transfers */}
+              {day.transfers && day.transfers.length > 0 && (
+                <div>
+                  <h4 className="text-lg font-medium mb-3 text-blue-700">
+                    التحويلات بين الحسابات ({day.transfers.length})
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-blue-50">
+                        <tr>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-700">النوع</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-700">المبلغ</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-700">من → إلى</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-700">الوقت</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-700">التفاصيل</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-700">سجل بواسطة</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {day.transfers.map((transfer: any) => {
+                          let details = '';
+                          if (transfer.details.receiptNumber) {
+                            details = `رقم الإيصال: ${transfer.details.receiptNumber}`;
+                          }
+                          if (transfer.details.notes) {
+                            details += details ? ` | ${transfer.details.notes}` : transfer.details.notes;
+                          }
+                          return (
+                            <tr key={transfer.id}>
+                              <td className="px-4 py-2 text-sm">{transfer.typeLabel}</td>
+                              <td className="px-4 py-2 text-sm font-semibold text-blue-700">
+                                {formatCurrency(parseFloat(transfer.amount))}
+                              </td>
+                              <td className="px-4 py-2 text-sm">
+                                <span className="text-red-600">
+                                  {paymentMethodLabels[transfer.fromMethod] || transfer.fromMethod}
+                                </span>
+                                {' → '}
+                                <span className="text-green-600">
+                                  {paymentMethodLabels[transfer.toMethod] || transfer.toMethod}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-500">
+                                {new Date(transfer.date).toLocaleTimeString('ar-SD', { hour: '2-digit', minute: '2-digit' })}
+                              </td>
+                              <td className="px-4 py-2 text-sm text-gray-600">{details || '-'}</td>
+                              <td className="px-4 py-2 text-sm text-gray-500">{transfer.recordedBy}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </Card>
           ))}
         </div>
