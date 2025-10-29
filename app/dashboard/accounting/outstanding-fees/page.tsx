@@ -8,6 +8,7 @@ import Table from '@/components/Table';
 import Button from '@/components/Button';
 import Select from '@/components/Select';
 import { formatCurrency, sectionLabels, customerTypeLabels } from '@/lib/utils';
+import { generatePDF } from '@/lib/pdfUtils';
 
 export default function OutstandingFeesPage() {
   const { user } = useUser();
@@ -43,7 +44,112 @@ export default function OutstandingFeesPage() {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (!data) return;
+    const currentDate = new Date().toLocaleDateString('ar-SD', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const sectionLabel = filters.section === 'ALL' ? 'الكل' : sectionLabels[filters.section] || filters.section;
+    const periodLabels: Record<string, string> = { ALL: 'الكل', today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', year: 'هذا العام' };
+    const periodLabel = periodLabels[filters.period] || 'الكل';
+
+    const customersRows = (data.customers || []).map((c: any) => `
+      <tr>
+        <td>${c.name}</td>
+        <td>${customerTypeLabels[c.type] || c.type}</td>
+        <td>${sectionLabels[c.division] || c.division}</td>
+        <td>${formatCurrency(c.accountsReceivable)}</td>
+        <td>${parseFloat(c.openingBalance) !== 0 ? (parseFloat(c.openingBalance) > 0 ? '+' : '') + formatCurrency(c.openingBalance) : formatCurrency(0)}</td>
+        <td>${formatCurrency(Math.abs(parseFloat(c.netOutstanding)))}</td>
+        <td>${c.outstandingType === 'OWES_US' ? 'العميل مدين لنا' : c.outstandingType === 'WE_OWE' ? 'نحن مدينون للعميل' : 'متساوي'}</td>
+      </tr>
+    `).join('');
+
+    const suppliersRows = (data.suppliers || []).map((s: any) => `
+      <tr>
+        <td>${s.name}</td>
+        <td>${formatCurrency(s.accountsPayable)}</td>
+        <td>${parseFloat(s.openingBalance) !== 0 ? (parseFloat(s.openingBalance) > 0 ? '+' : '') + formatCurrency(s.openingBalance) : formatCurrency(0)}</td>
+        <td>${formatCurrency(Math.abs(parseFloat(s.netOutstanding)))}</td>
+        <td>${s.outstandingType === 'WE_OWE' ? 'نحن مدينون للمورد' : s.outstandingType === 'OWES_US' ? 'المورد مدين لنا' : 'متساوي'}</td>
+      </tr>
+    `).join('');
+
+    const html = `
+      <div class="header">
+        <h1>تقرير المتأخرات المالية</h1>
+        <div class="date">تاريخ التقرير: ${currentDate} | القسم: ${sectionLabel} | الفترة: ${periodLabel}</div>
+      </div>
+
+      <div class="section">
+        <h2>الملخص</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>البند</th>
+              <th>المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>العملاء مدينون لنا</td>
+              <td>${formatCurrency(data.summary.customersOwesUs)}</td>
+            </tr>
+            <tr>
+              <td>نحن مدينون للعملاء</td>
+              <td>${formatCurrency(data.summary.weOweCustomers)}</td>
+            </tr>
+            <tr>
+              <td>نحن مدينون للموردين</td>
+              <td>${formatCurrency(data.summary.weOweSuppliers)}</td>
+            </tr>
+            <tr>
+              <td>الموردون مدينون لنا</td>
+              <td>${formatCurrency(data.summary.suppliersOwesUs)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>العملاء المتأخرون (${data.customers.length})</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>العميل</th>
+              <th>النوع</th>
+              <th>القسم</th>
+              <th>ذمم (فواتير)</th>
+              <th>رصيد افتتاحي</th>
+              <th>المتبقي</th>
+              <th>الجهة</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${customersRows}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>الموردون المتأخرون (${data.suppliers.length})</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>المورد</th>
+              <th>ذمم (أوامر)</th>
+              <th>رصيد افتتاحي</th>
+              <th>المتبقي</th>
+              <th>الجهة</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${suppliersRows}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    generatePDF(html, 'تقرير_المتأخرات');
   };
 
   const periodLabels: Record<string, string> = {
