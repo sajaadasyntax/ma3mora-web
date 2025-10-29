@@ -30,9 +30,22 @@ export default function SalesReportsPage() {
     setLoading(true);
     try {
       const params: any = {};
-      if (filters.startDate) params.startDate = filters.startDate;
-      if (filters.endDate) params.endDate = filters.endDate;
-      if (filters.period) params.period = filters.period;
+      if (filters.period === 'monthly') {
+        // Expect startDate as YYYY-MM when monthly; compute endDate as month end
+        if (filters.startDate) {
+          const [year, month] = filters.startDate.split('-');
+          const end = new Date(Number(year), Number(month), 0); // last day of month
+          const startISO = `${year}-${month}-01`;
+          const endISO = end.toISOString().split('T')[0];
+          params.startDate = startISO;
+          params.endDate = endISO;
+        }
+        params.period = 'monthly';
+      } else {
+        if (filters.startDate) params.startDate = filters.startDate;
+        if (filters.endDate) params.endDate = filters.endDate;
+        if (filters.period) params.period = filters.period;
+      }
       if (filters.inventoryId) params.inventoryId = filters.inventoryId;
       if (filters.section) params.section = filters.section;
       if (filters.paymentMethod) params.paymentMethod = filters.paymentMethod;
@@ -47,6 +60,17 @@ export default function SalesReportsPage() {
   };
 
   const handleFilterChange = (key: string, value: string) => {
+    // When switching period, normalize date inputs
+    if (key === 'period') {
+      if (value === 'monthly') {
+        // Clear endDate; startDate will be month (YYYY-MM)
+        setFilters(prev => ({ ...prev, period: value, endDate: '' }));
+        return;
+      } else {
+        setFilters(prev => ({ ...prev, period: value }));
+        return;
+      }
+    }
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
@@ -81,25 +105,27 @@ export default function SalesReportsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              تاريخ البداية
+              {filters.period === 'monthly' ? 'الشهر' : 'تاريخ البداية'}
             </label>
             <Input
-              type="date"
+              type={filters.period === 'monthly' ? 'month' : 'date'}
               value={filters.startDate}
               onChange={(e) => handleFilterChange('startDate', e.target.value)}
             />
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              تاريخ النهاية
-            </label>
-            <Input
-              type="date"
-              value={filters.endDate}
-              onChange={(e) => handleFilterChange('endDate', e.target.value)}
-            />
-          </div>
+
+          {filters.period !== 'monthly' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                تاريخ النهاية
+              </label>
+              <Input
+                type="date"
+                value={filters.endDate}
+                onChange={(e) => handleFilterChange('endDate', e.target.value)}
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
