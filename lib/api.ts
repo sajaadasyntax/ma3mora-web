@@ -344,6 +344,10 @@ export const api = {
   getBankTransactions: (params?: { startDate?: string; endDate?: string; method?: string }) =>
     fetchAPI('/accounting/bank-transactions', { params }),
 
+  // Daily Income/Loss Report
+  getDailyIncomeLoss: (params?: { date?: string; startDate?: string; endDate?: string }) =>
+    fetchAPI('/accounting/daily-income-loss', { params }),
+
   // Expiry Management
   getExpiryAlerts: (days?: number) =>
     fetchAPI('/inventories/expiry-alerts', { params: days ? { days: days.toString() } : undefined }),

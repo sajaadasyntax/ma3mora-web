@@ -40,7 +40,9 @@ export default function NewSalesInvoicePage() {
   const [currentItem, setCurrentItem] = useState({
     itemId: '',
     quantity: 1,
-    giftQty: 0,
+    giftQty: 0, // Deprecated: kept for backward compatibility
+    giftItemId: '', // New: The item being given as gift
+    giftQuantity: 0, // New: Quantity of the gift item
   });
 
   useEffect(() => {
@@ -102,8 +104,9 @@ export default function NewSalesInvoicePage() {
     const item = items.find((i) => i.id === currentItem.itemId);
     if (!item) return;
 
-    setInvoiceItems([...invoiceItems, { ...currentItem, item }]);
-    setCurrentItem({ itemId: '', quantity: 1, giftQty: 0 });
+    const giftItem = currentItem.giftItemId ? items.find((i) => i.id === currentItem.giftItemId) : null;
+    setInvoiceItems([...invoiceItems, { ...currentItem, item, giftItem }]);
+    setCurrentItem({ itemId: '', quantity: 1, giftQty: 0, giftItemId: '', giftQuantity: 0 });
   };
 
   const removeItem = (index: number) => {
@@ -143,7 +146,9 @@ export default function NewSalesInvoicePage() {
         items: invoiceItems.map((i) => ({
           itemId: i.itemId,
           quantity: i.quantity,
-          giftQty: i.giftQty,
+          giftQty: i.giftQty || 0, // Keep for backward compatibility
+          giftItemId: i.giftItemId || undefined,
+          giftQuantity: i.giftQuantity || undefined,
         })),
       };
       
@@ -294,37 +299,67 @@ export default function NewSalesInvoicePage() {
 
           <h3 className="text-lg font-semibold mb-4">الأصناف</h3>
 
-          <div className="grid grid-cols-4 gap-4 mb-4">
-            <Select
-              label="الصنف"
-              value={currentItem.itemId}
-              onChange={(e) => setCurrentItem({ ...currentItem, itemId: e.target.value })}
-              options={[
-                { value: '', label: 'اختر الصنف' },
-                ...items.map((item) => ({ value: item.id, label: item.name })),
-              ]}
-            />
+          <div className="grid grid-cols-1 gap-4 mb-4">
+            <div className="grid grid-cols-4 gap-4">
+              <Select
+                label="الصنف"
+                value={currentItem.itemId}
+                onChange={(e) => setCurrentItem({ ...currentItem, itemId: e.target.value })}
+                options={[
+                  { value: '', label: 'اختر الصنف' },
+                  ...items.map((item) => ({ value: item.id, label: item.name })),
+                ]}
+              />
 
-            <Input
-              label="الكمية"
-              type="number"
-              step="0.01"
-              value={currentItem.quantity}
-              onChange={(e) => setCurrentItem({ ...currentItem, quantity: parseFloat(e.target.value) || 0 })}
-            />
+              <Input
+                label="الكمية"
+                type="number"
+                step="0.01"
+                value={currentItem.quantity}
+                onChange={(e) => setCurrentItem({ ...currentItem, quantity: parseFloat(e.target.value) || 0 })}
+              />
 
-            <Input
-              label="الهدية"
-              type="number"
-              step="0.01"
-              value={currentItem.giftQty}
-              onChange={(e) => setCurrentItem({ ...currentItem, giftQty: parseFloat(e.target.value) || 0 })}
-            />
+              <Input
+                label="الهدية (قديم)"
+                type="number"
+                step="0.01"
+                value={currentItem.giftQty}
+                onChange={(e) => setCurrentItem({ ...currentItem, giftQty: parseFloat(e.target.value) || 0 })}
+                placeholder="نفس الصنف"
+              />
 
-            <div className="flex items-end">
-              <Button type="button" onClick={addItem} className="w-full">
-                إضافة
-              </Button>
+              <div className="flex items-end">
+                <Button type="button" onClick={addItem} className="w-full">
+                  إضافة
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 border-t pt-4">
+              <Select
+                label="هدية (صنف منفصل)"
+                value={currentItem.giftItemId}
+                onChange={(e) => setCurrentItem({ ...currentItem, giftItemId: e.target.value, giftQty: 0 })}
+                options={[
+                  { value: '', label: 'لا يوجد هدية' },
+                  ...items.map((item) => ({ value: item.id, label: item.name })),
+                ]}
+              />
+
+              <Input
+                label="كمية الهدية"
+                type="number"
+                step="0.01"
+                value={currentItem.giftQuantity}
+                onChange={(e) => setCurrentItem({ ...currentItem, giftQuantity: parseFloat(e.target.value) || 0 })}
+                disabled={!currentItem.giftItemId}
+              />
+
+              <div className="flex items-center text-sm text-gray-500">
+                {currentItem.giftItemId && (
+                  <span>سيتم إضافة {currentItem.giftQuantity} من {items.find((i) => i.id === currentItem.giftItemId)?.name} كهدية</span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -342,9 +377,18 @@ export default function NewSalesInvoicePage() {
                 <tbody>
                   {invoiceItems.map((item, index) => (
                     <tr key={index}>
-                      <td className="px-4 py-2 text-sm">{item.item.name}</td>
+                      <td className="px-4 py-2 text-sm">
+                        {item.item.name}
+                        {item.giftItem && (
+                          <div className="text-xs text-green-600 mt-1">
+                            هدية: {item.giftQuantity} × {item.giftItem.name}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-2 text-sm">{item.quantity}</td>
-                      <td className="px-4 py-2 text-sm">{item.giftQty}</td>
+                      <td className="px-4 py-2 text-sm">
+                        {item.giftQty > 0 ? `${item.giftQty} (قديم)` : item.giftItem ? `${item.giftQuantity} × ${item.giftItem.name}` : '-'}
+                      </td>
                       <td className="px-4 py-2 text-sm">
                         <Button
                           type="button"

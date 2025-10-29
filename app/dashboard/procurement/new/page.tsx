@@ -28,7 +28,9 @@ export default function NewProcOrderPage() {
   const [currentItem, setCurrentItem] = useState({
     itemId: '',
     quantity: 1,
-    giftQty: 0,
+    giftQty: 0, // Deprecated: kept for backward compatibility
+    giftItemId: '', // New: The item being given as gift
+    giftQuantity: 0, // New: Quantity of the gift item
     unitCost: '',
   });
 
@@ -83,6 +85,7 @@ export default function NewProcOrderPage() {
     const item = items.find((i) => i.id === currentItem.itemId);
     if (!item) return;
 
+    const giftItem = currentItem.giftItemId ? items.find((i) => i.id === currentItem.giftItemId) : null;
     const existingIndex = orderItems.findIndex((i) => i.itemId === currentItem.itemId);
     
     if (existingIndex >= 0) {
@@ -90,6 +93,7 @@ export default function NewProcOrderPage() {
       updatedItems[existingIndex] = {
         ...currentItem,
         item,
+        giftItem,
         unitCost: parseFloat(currentItem.unitCost),
       };
       setOrderItems(updatedItems);
@@ -99,12 +103,13 @@ export default function NewProcOrderPage() {
         {
           ...currentItem,
           item,
+          giftItem,
           unitCost: parseFloat(currentItem.unitCost),
         },
       ]);
     }
     
-    setCurrentItem({ itemId: '', quantity: 1, giftQty: 0, unitCost: '' });
+    setCurrentItem({ itemId: '', quantity: 1, giftQty: 0, giftItemId: '', giftQuantity: 0, unitCost: '' });
   };
 
   const removeItem = (index: number) => {
@@ -139,7 +144,9 @@ export default function NewProcOrderPage() {
         items: orderItems.map((item) => ({
           itemId: item.itemId,
           quantity: parseFloat(item.quantity),
-          giftQty: parseFloat(item.giftQty || 0),
+          giftQty: parseFloat(item.giftQty || 0), // Keep for backward compatibility
+          giftItemId: item.giftItemId || undefined,
+          giftQuantity: item.giftQuantity || undefined,
           unitCost: parseFloat(item.unitCost),
         })),
         notes: formData.notes,
@@ -217,7 +224,7 @@ export default function NewProcOrderPage() {
               <h2 className="text-xl font-semibold mb-4">إضافة الأصناف</h2>
               
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                <div className="md:col-span-5">
+                <div className="md:col-span-4">
                   <Select
                     label="الصنف"
                     value={currentItem.itemId}
@@ -229,7 +236,7 @@ export default function NewProcOrderPage() {
                   />
                 </div>
 
-                <div className="md:col-span-3">
+                <div className="md:col-span-2">
                   <Input
                     label="الكمية"
                     type="number"
@@ -240,19 +247,7 @@ export default function NewProcOrderPage() {
                   />
                 </div>
 
-                <div className="md:col-span-3">
-                  <Input
-                    label="كمية الهدايا"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={currentItem.giftQty}
-                    onChange={(e) => setCurrentItem({ ...currentItem, giftQty: parseFloat(e.target.value) || 0 })}
-                    placeholder="0"
-                  />
-                </div>
-
-                <div className="md:col-span-3">
+                <div className="md:col-span-2">
                   <Input
                     label="سعر الوحدة"
                     type="number"
@@ -264,10 +259,51 @@ export default function NewProcOrderPage() {
                   />
                 </div>
 
-                <div className="md:col-span-1">
-                  <Button type="button" onClick={addItem} size="sm">
-                    +
+                <div className="md:col-span-2">
+                  <Input
+                    label="الهدية (قديم)"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={currentItem.giftQty}
+                    onChange={(e) => setCurrentItem({ ...currentItem, giftQty: parseFloat(e.target.value) || 0 })}
+                    placeholder="نفس الصنف"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <Button type="button" onClick={addItem} size="sm" className="w-full">
+                    إضافة
                   </Button>
+                </div>
+              </div>
+
+              {/* Gift Item Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 border-t pt-4">
+                <Select
+                  label="هدية (صنف منفصل)"
+                  value={currentItem.giftItemId}
+                  onChange={(e) => setCurrentItem({ ...currentItem, giftItemId: e.target.value, giftQty: 0 })}
+                  options={[
+                    { value: '', label: 'لا يوجد هدية' },
+                    ...items.map((item) => ({ value: item.id, label: item.name })),
+                  ]}
+                />
+
+                <Input
+                  label="كمية الهدية"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={currentItem.giftQuantity}
+                  onChange={(e) => setCurrentItem({ ...currentItem, giftQuantity: parseFloat(e.target.value) || 0 })}
+                  disabled={!currentItem.giftItemId}
+                />
+
+                <div className="flex items-center text-sm text-gray-500">
+                  {currentItem.giftItemId && (
+                    <span>سيتم إضافة {currentItem.giftQuantity} من {items.find((i) => i.id === currentItem.giftItemId)?.name} كهدية</span>
+                  )}
                 </div>
               </div>
 
@@ -286,7 +322,10 @@ export default function NewProcOrderPage() {
                           <p className="text-sm text-gray-600">
                             الكمية: {item.quantity} × {formatCurrency(item.unitCost)}
                             {item.giftQty && item.giftQty > 0 && (
-                              <span className="text-green-600 ml-2">+ هدية: {item.giftQty}</span>
+                              <span className="text-green-600 ml-2">+ هدية (قديم): {item.giftQty}</span>
+                            )}
+                            {item.giftItem && (
+                              <span className="text-green-600 ml-2">+ هدية: {item.giftQuantity} × {item.giftItem.name}</span>
                             )}
                           </p>
                         </div>
