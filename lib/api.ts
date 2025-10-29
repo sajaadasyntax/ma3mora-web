@@ -218,6 +218,11 @@ export const api = {
       body: JSON.stringify({ gifts }),
     }),
 
+  assignProcOrderDelivered: (id: string) =>
+    fetchAPI(`/procurement/orders/${id}/assign-delivered`, {
+      method: 'POST',
+    }),
+
   // Accounting
   getExpenses: (params?: any) =>
     fetchAPI('/accounting/expenses', { params }),

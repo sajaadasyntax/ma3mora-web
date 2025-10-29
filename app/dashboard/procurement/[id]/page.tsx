@@ -376,6 +376,44 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
 
   const receivedQuantities = getReceivedQuantities();
   
+  const isFullyReceived = (() => {
+    if (!order?.items) return false;
+    for (const row of order.items) {
+      const giftQty = parseFloat(row.giftQty?.toString() || '0');
+      const orderedQty = parseFloat(row.quantity?.toString() || '0');
+      const giftQtyNew = row.giftQuantity ? parseFloat(row.giftQuantity.toString()) : 0;
+      const totalOrdered = orderedQty + giftQty;
+
+      const receivedMain = receivedQuantities[row.itemId] || 0;
+      const pendingMain = Math.max(0, totalOrdered - receivedMain);
+
+      const giftReceived = row.giftItemId ? (receivedQuantities[row.giftItemId] || 0) : 0;
+      const pendingGift = Math.max(0, giftQtyNew - giftReceived);
+
+      if (pendingMain > 0 || pendingGift > 0) return false;
+    }
+    return true;
+  })();
+
+  const [assigningDelivered, setAssigningDelivered] = useState(false);
+  const handleAssignDelivered = async () => {
+    if (!isFullyReceived) {
+      alert('لا يمكن التعيين كمستلم كامل قبل اكتمال استلام جميع الكميات.');
+      return;
+    }
+    if (!confirm('تأكيد تعيين الأمر كمستلم بالكامل؟')) return;
+    setAssigningDelivered(true);
+    try {
+      await api.assignProcOrderDelivered(params.id);
+      await loadOrder();
+      alert('تم التعيين كمستلم كامل بنجاح');
+    } catch (error: any) {
+      alert(error.message || 'فشل التعيين كمستلم كامل');
+    } finally {
+      setAssigningDelivered(false);
+    }
+  };
+  
   // Check if partial delivery has started (if there are any receipts)
   const hasPartialDelivery = order.receipts && order.receipts.length > 0;
 
@@ -1084,6 +1122,15 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                       >
                         {hasPartialDelivery ? 'متابعة الاستلام الجزئي' : 'استلام جزئي'}
                       </Button>
+                      {order.status === 'PARTIAL' && (
+                        <Button 
+                          className={isFullyReceived ? '' : 'opacity-60 cursor-not-allowed'}
+                          onClick={handleAssignDelivered}
+                          disabled={!isFullyReceived || assigningDelivered}
+                        >
+                          {assigningDelivered ? 'جارٍ التعيين...' : 'تعيين كمستلم كامل'}
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-4">
