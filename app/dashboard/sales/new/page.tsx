@@ -30,6 +30,7 @@ export default function NewSalesInvoicePage() {
     inventoryId: '',
     section: getUserSection(),
     customerId: '',
+    pricingTier: 'RETAIL' as 'RETAIL' | 'WHOLESALE', // Default pricing tier when no customer
     paymentMethod: 'CASH',
     discount: 0,
     notes: '',
@@ -88,6 +89,10 @@ export default function NewSalesInvoicePage() {
     }
   };
 
+  // Separate customers by type
+  const retailCustomers = customers.filter((c) => c.type === 'RETAIL');
+  const wholesaleCustomers = customers.filter((c) => c.type === 'WHOLESALE');
+
   const addItem = () => {
     if (!currentItem.itemId || currentItem.quantity <= 0) {
       alert('يرجى اختيار الصنف والكمية');
@@ -106,9 +111,9 @@ export default function NewSalesInvoicePage() {
   };
 
   const calculateTotal = () => {
-    // Determine pricing tier: use customer type if customer selected, otherwise default to RETAIL
+    // Determine pricing tier: use customer type if customer selected, otherwise use selected pricing tier
     const customer = formData.customerId ? customers.find((c) => c.id === formData.customerId) : null;
-    const pricingTier = customer ? customer.type : 'RETAIL';
+    const pricingTier = customer ? customer.type : formData.pricingTier;
 
     const subtotal = invoiceItems.reduce((sum, lineItem) => {
       const prices = lineItem.item.prices.filter((p: any) => p.tier === pricingTier);
@@ -131,7 +136,10 @@ export default function NewSalesInvoicePage() {
     setSubmitting(true);
     try {
       const submitData: any = {
-        ...formData,
+        inventoryId: formData.inventoryId,
+        section: formData.section,
+        paymentMethod: formData.paymentMethod,
+        discount: formData.discount,
         items: invoiceItems.map((i) => ({
           itemId: i.itemId,
           quantity: i.quantity,
@@ -139,9 +147,17 @@ export default function NewSalesInvoicePage() {
         })),
       };
       
-      // Only include customerId if it's provided
-      if (!formData.customerId) {
-        delete submitData.customerId;
+      // Only include customerId if it's provided (not empty string)
+      if (formData.customerId && formData.customerId.trim() !== '') {
+        submitData.customerId = formData.customerId;
+      } else {
+        // When no customer, include pricingTier to determine pricing
+        submitData.pricingTier = formData.pricingTier;
+      }
+      
+      // Include notes if provided
+      if (formData.notes && formData.notes.trim() !== '') {
+        submitData.notes = formData.notes;
       }
       
       await api.createSalesInvoice(submitData);
@@ -193,15 +209,60 @@ export default function NewSalesInvoicePage() {
               </div>
             )}
 
-            <Select
-              label="العميل (اختياري)"
-              value={formData.customerId}
-              onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-              options={[
-                { value: '', label: 'بدون عميل (سعر التجزئة)' },
-                ...customers.map((c) => ({ value: c.id, label: c.name })),
-              ]}
-            />
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">العميل (اختياري)</label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">بالتجزئة</label>
+                  <Select
+                    value={formData.customerId && retailCustomers.some(c => c.id === formData.customerId) ? formData.customerId : ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        customerId: value || '',
+                        pricingTier: value ? 'RETAIL' : formData.pricingTier,
+                      });
+                    }}
+                    options={[
+                      { value: '', label: 'بدون عميل' },
+                      ...retailCustomers.map((c) => ({ value: c.id, label: c.name })),
+                    ]}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">بالجملة</label>
+                  <Select
+                    value={formData.customerId && wholesaleCustomers.some(c => c.id === formData.customerId) ? formData.customerId : ''}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData({ 
+                        ...formData, 
+                        customerId: value || '',
+                        pricingTier: value ? 'WHOLESALE' : formData.pricingTier,
+                      });
+                    }}
+                    options={[
+                      { value: '', label: 'بدون عميل' },
+                      ...wholesaleCustomers.map((c) => ({ value: c.id, label: c.name })),
+                    ]}
+                  />
+                </div>
+              </div>
+              {!formData.customerId && (
+                <div className="mt-2">
+                  <label className="block text-xs text-gray-500 mb-1">نوع السعر عند عدم وجود عميل</label>
+                  <Select
+                    value={formData.pricingTier}
+                    onChange={(e) => setFormData({ ...formData, pricingTier: e.target.value as 'RETAIL' | 'WHOLESALE' })}
+                    options={[
+                      { value: 'RETAIL', label: 'سعر التجزئة' },
+                      { value: 'WHOLESALE', label: 'سعر الجملة' },
+                    ]}
+                  />
+                </div>
+              )}
+            </div>
 
             <Select
               label="طريقة الدفع"
