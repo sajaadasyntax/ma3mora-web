@@ -100,14 +100,72 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
   };
 
   const handleReceive = async () => {
+    // Validation
+    if (receiveForm.partial) {
+      // For partial delivery, at least one item must have quantity > 0
+      const hasAnyQuantity = receiveForm.batches.some(b => b.quantity > 0);
+      if (!hasAnyQuantity) {
+        alert('يجب إدخال كمية واحدة على الأقل للاستلام الجزئي');
+        return;
+      }
+    }
+
+    // Validate quantities don't exceed remaining
+    const errors: string[] = [];
+    receiveForm.batches.forEach((batch) => {
+      if (batch.quantity > 0) {
+        // Check if this is a gift item or main item
+        const orderItem = order.items.find((item: any) => item.itemId === batch.itemId);
+        
+        // If not found as main item, check if it's a gift item
+        const giftOrderItem = !orderItem ? order.items.find((item: any) => item.giftItemId === batch.itemId) : null;
+        const isGiftItem = giftOrderItem !== null;
+        
+        if (orderItem || giftOrderItem) {
+          let orderedQty: number;
+          let itemName: string;
+          
+          if (isGiftItem && giftOrderItem) {
+            // This is a gift item batch
+            orderedQty = parseFloat(giftOrderItem.giftQuantity?.toString() || '0');
+            itemName = giftOrderItem.giftItem?.name || batch.itemId;
+          } else if (orderItem) {
+            // This is a main item batch
+            orderedQty = parseFloat(orderItem.quantity?.toString() || '0');
+            // Add old giftQty if exists
+            const oldGiftQty = parseFloat(orderItem.giftQty?.toString() || '0');
+            orderedQty += oldGiftQty;
+            itemName = orderItem.item?.name || batch.itemId;
+          } else {
+            orderedQty = 0;
+            itemName = batch.itemId;
+          }
+          
+          const received = receivedQuantities[batch.itemId] || 0;
+          const remaining = Math.max(0, orderedQty - received);
+          
+          if (batch.quantity > remaining) {
+            errors.push(`${itemName}: الكمية المدخلة (${batch.quantity}) تتجاوز المتبقي (${remaining.toFixed(2)})`);
+          }
+        }
+      }
+    });
+
+    if (errors.length > 0) {
+      alert('خطأ في الكميات:\n' + errors.join('\n'));
+      return;
+    }
+
     setReceiving(true);
     try {
-      const batches = receiveForm.batches.map(batch => ({
-        itemId: batch.itemId,
-        quantity: batch.quantity,
-        expiryDate: batch.expiryDate || null,
-        notes: batch.notes || undefined,
-      }));
+      const batches = receiveForm.batches
+        .filter(b => b.quantity > 0) // Only include batches with quantity > 0
+        .map(batch => ({
+          itemId: batch.itemId,
+          quantity: batch.quantity,
+          expiryDate: batch.expiryDate || null,
+          notes: batch.notes || undefined,
+        }));
 
       await api.receiveOrder(params.id, receiveForm.notes, receiveForm.partial, batches.length > 0 ? batches : undefined);
       setReceiveForm({
@@ -128,14 +186,28 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
   const initializeReceiveForm = (partial: boolean) => {
     const batches = order.items.map((item: any) => ({
       itemId: item.itemId,
-      quantity: parseFloat(item.quantity.toString()),
+      quantity: partial ? 0 : parseFloat(item.quantity.toString()),
       expiryDate: '',
       notes: '',
     }));
+    
+    // Add gift items as separate batches if they exist
+    const giftBatches: Array<{ itemId: string; quantity: number; expiryDate: string; notes?: string }> = [];
+    order.items.forEach((item: any) => {
+      if (item.giftItemId && item.giftQuantity) {
+        giftBatches.push({
+          itemId: item.giftItemId,
+          quantity: partial ? 0 : parseFloat(item.giftQuantity.toString()),
+          expiryDate: '',
+          notes: '',
+        });
+      }
+    });
+    
     setReceiveForm({
       notes: '',
       partial,
-      batches,
+      batches: [...batches, ...giftBatches],
     });
     setShowReceiveForm(true);
   };
@@ -283,7 +355,7 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     return <div className="text-center py-8">أمر الشراء غير موجود</div>;
   }
 
-  // Calculate received quantities per item from all receipts
+  // Calculate received quantities per item from all receipts (including gift items)
   const getReceivedQuantities = () => {
     const received: { [itemId: string]: number } = {};
     
@@ -303,12 +375,26 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
   };
 
   const receivedQuantities = getReceivedQuantities();
+  
+  // Check if partial delivery has started (if there are any receipts)
+  const hasPartialDelivery = order.receipts && order.receipts.length > 0;
 
   const itemColumns = [
     {
       key: 'item',
       label: 'الصنف',
-      render: (value: any) => value.name,
+      render: (value: any, row: any) => {
+        return (
+          <div>
+            <div>{value.name}</div>
+            {row.giftItem && row.giftQuantity && (
+              <div className="text-xs text-green-600 mt-1">
+                هدية: {formatNumber(parseFloat(row.giftQuantity.toString()))} × {row.giftItem.name}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     { 
       key: 'quantity', 
@@ -316,11 +402,18 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
       render: (value: any, row: any) => {
         const giftQty = parseFloat(row.giftQty?.toString() || '0');
         const orderedQty = parseFloat(value?.toString() || '0');
-        if (giftQty > 0) {
+        const giftQtyNew = row.giftQuantity ? parseFloat(row.giftQuantity.toString()) : 0;
+        
+        if (giftQty > 0 || giftQtyNew > 0) {
           return (
             <div>
               <span>{formatNumber(orderedQty)}</span>
-              <span className="text-green-600 text-sm mr-2"> + {formatNumber(giftQty)} هدية</span>
+              {giftQty > 0 && (
+                <span className="text-green-600 text-sm mr-2"> + {formatNumber(giftQty)} هدية (قديم)</span>
+              )}
+              {giftQtyNew > 0 && (
+                <span className="text-green-600 text-sm mr-2"> + {formatNumber(giftQtyNew)} × {row.giftItem?.name} (هدية)</span>
+              )}
             </div>
           );
         }
@@ -335,14 +428,36 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
         const received = receivedQuantities[itemId] || 0;
         const giftQty = parseFloat(row.giftQty?.toString() || '0');
         const orderedQty = parseFloat(value?.toString() || '0');
+        const giftQtyNew = row.giftQuantity ? parseFloat(row.giftQuantity.toString()) : 0;
         const totalOrdered = orderedQty + giftQty;
         
-        if (received === 0) {
+        // Handle gift item received separately
+        const giftReceived = row.giftItemId ? (receivedQuantities[row.giftItemId] || 0) : 0;
+        
+        if (received === 0 && giftReceived === 0) {
           return <span className="text-red-600 font-semibold">0</span>;
-        } else if (received >= totalOrdered) {
-          return <span className="text-green-600 font-semibold">{formatNumber(received)} ✓</span>;
+        } else if (received >= totalOrdered && giftReceived >= giftQtyNew) {
+          return (
+            <div>
+              <span className="text-green-600 font-semibold">{formatNumber(received)} ✓</span>
+              {giftQtyNew > 0 && (
+                <div className="text-xs text-green-600">
+                  هدية: {formatNumber(giftReceived)} ✓
+                </div>
+              )}
+            </div>
+          );
         } else {
-          return <span className="text-orange-600 font-semibold">{formatNumber(received)}</span>;
+          return (
+            <div>
+              <span className="text-orange-600 font-semibold">{formatNumber(received)}</span>
+              {giftQtyNew > 0 && (
+                <div className="text-xs text-orange-600">
+                  هدية: {formatNumber(giftReceived)}
+                </div>
+              )}
+            </div>
+          );
         }
       },
     },
@@ -354,13 +469,32 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
         const received = receivedQuantities[itemId] || 0;
         const giftQty = parseFloat(row.giftQty?.toString() || '0');
         const orderedQty = parseFloat(value?.toString() || '0');
+        const giftQtyNew = row.giftQuantity ? parseFloat(row.giftQuantity.toString()) : 0;
         const totalOrdered = orderedQty + giftQty;
         const pending = Math.max(0, totalOrdered - received);
         
-        if (pending === 0) {
+        // Handle gift item pending separately
+        const giftReceived = row.giftItemId ? (receivedQuantities[row.giftItemId] || 0) : 0;
+        const giftPending = Math.max(0, giftQtyNew - giftReceived);
+        
+        if (pending === 0 && giftPending === 0) {
           return <span className="text-green-600 font-semibold">0 ✓</span>;
         } else {
-          return <span className="text-red-600 font-semibold">{formatNumber(pending)}</span>;
+          return (
+            <div>
+              {pending > 0 && (
+                <span className="text-red-600 font-semibold">{formatNumber(pending)}</span>
+              )}
+              {pending === 0 && giftPending > 0 && (
+                <span className="text-green-600 font-semibold">0 ✓</span>
+              )}
+              {giftPending > 0 && (
+                <div className="text-xs text-red-600">
+                  هدية: {formatNumber(giftPending)}
+                </div>
+              )}
+            </div>
+          );
         }
       },
     },
@@ -372,16 +506,21 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
         const received = receivedQuantities[itemId] || 0;
         const giftQty = parseFloat(row.giftQty?.toString() || '0');
         const orderedQty = parseFloat(value?.toString() || '0');
+        const giftQtyNew = row.giftQuantity ? parseFloat(row.giftQuantity.toString()) : 0;
         const totalOrdered = orderedQty + giftQty;
-        const pending = totalOrdered - received;
+        const pending = Math.max(0, totalOrdered - received);
         
-        if (received === 0) {
+        // Handle gift item separately
+        const giftReceived = row.giftItemId ? (receivedQuantities[row.giftItemId] || 0) : 0;
+        const giftPending = Math.max(0, giftQtyNew - giftReceived);
+        
+        if (received === 0 && giftReceived === 0) {
           return (
             <span className="inline-block px-2 py-1 rounded text-xs bg-red-100 text-red-800 font-semibold">
               غير مستلم
             </span>
           );
-        } else if (pending <= 0) {
+        } else if (pending <= 0 && giftPending <= 0) {
           return (
             <span className="inline-block px-2 py-1 rounded text-xs bg-green-100 text-green-800 font-semibold">
               ✓ مستلم كامل
@@ -930,16 +1069,19 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                 <div className="space-y-4">
                   {!showReceiveForm ? (
                     <div className="flex gap-4">
-                      <Button 
-                        onClick={() => initializeReceiveForm(false)}
-                      >
-                        استلام كامل
-                      </Button>
+                      {/* Hide full delivery button if partial delivery has started */}
+                      {!hasPartialDelivery && (
+                        <Button 
+                          onClick={() => initializeReceiveForm(false)}
+                        >
+                          استلام كامل
+                        </Button>
+                      )}
                       <Button 
                         variant="secondary" 
                         onClick={() => initializeReceiveForm(true)}
                       >
-                        استلام جزئي
+                        {hasPartialDelivery ? 'متابعة الاستلام الجزئي' : 'استلام جزئي'}
                       </Button>
                     </div>
                   ) : (
@@ -955,11 +1097,44 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
 
                       <div className="space-y-3">
                         {receiveForm.batches.map((batch, idx) => {
+                          // Find order item - check if this is a gift item or main item
                           const orderItem = order.items.find((item: any) => item.itemId === batch.itemId);
+                          const isGiftItem = orderItem && orderItem.giftItemId && orderItem.giftItemId === batch.itemId;
+                          
+                          // If not found as main item, it might be a gift item - find the order item that has this as gift
+                          const giftOrderItem = !orderItem ? order.items.find((item: any) => item.giftItemId === batch.itemId) : null;
+                          
+                          const item = orderItem || giftOrderItem;
+                          const isGift = isGiftItem || !!giftOrderItem;
+                          
+                          let orderedQty: number;
+                          let itemName: string;
+                          
+                          if (isGift && giftOrderItem) {
+                            // This is a gift item
+                            orderedQty = parseFloat(giftOrderItem.giftQuantity?.toString() || '0');
+                            itemName = giftOrderItem.giftItem?.name || batch.itemId;
+                          } else if (orderItem) {
+                            // This is a main item
+                            orderedQty = parseFloat(orderItem.quantity?.toString() || '0');
+                            const oldGiftQty = parseFloat(orderItem.giftQty?.toString() || '0');
+                            orderedQty += oldGiftQty;
+                            itemName = orderItem.item?.name || batch.itemId;
+                          } else {
+                            orderedQty = 0;
+                            itemName = batch.itemId;
+                          }
+                          
+                          const received = receivedQuantities[batch.itemId] || 0;
+                          const remaining = Math.max(0, orderedQty - received);
+                          
                           return (
-                            <div key={batch.itemId} className="border rounded-lg p-4 bg-gray-50">
+                            <div key={`${batch.itemId}-${idx}`} className={`border rounded-lg p-4 ${isGift ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
                               <h5 className="font-semibold mb-2">
-                                {orderItem?.item?.name || batch.itemId}
+                                {itemName}
+                                {isGift && (
+                                  <span className="text-green-600 text-sm mr-2">(هدية)</span>
+                                )}
                               </h5>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div>
@@ -971,37 +1146,17 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                                     value={batch.quantity}
                                     onChange={(e) => {
                                       const newBatches = [...receiveForm.batches];
-                                      const orderedQty = parseFloat(orderItem?.quantity?.toString() || '0');
-                                      const giftQty = parseFloat(orderItem?.giftQty?.toString() || '0');
-                                      const totalOrdered = orderedQty + giftQty;
-                                      const received = receivedQuantities[batch.itemId] || 0;
-                                      const remaining = Math.max(0, totalOrdered - received);
-                                      const nextVal = Math.max(0, Math.min(remaining, parseFloat(e.target.value) || 0));
+                                      const inputVal = parseFloat(e.target.value) || 0;
+                                      const nextVal = Math.max(0, Math.min(remaining, inputVal));
                                       newBatches[idx].quantity = nextVal;
                                       setReceiveForm({ ...receiveForm, batches: newBatches });
                                     }}
                                     min="0"
-                                    max={(function(){
-                                      const orderedQty = parseFloat(orderItem?.quantity?.toString() || '0');
-                                      const giftQty = parseFloat(orderItem?.giftQty?.toString() || '0');
-                                      const totalOrdered = orderedQty + giftQty;
-                                      const received = receivedQuantities[batch.itemId] || 0;
-                                      const remaining = Math.max(0, totalOrdered - received);
-                                      return remaining;
-                                    })()}
-                                    required
+                                    max={remaining}
+                                    required={!receiveForm.partial}
                                   />
                                   <p className="text-xs text-gray-500 mt-1">
-                                    الحد الأقصى المتبقي للاستلام: {
-                                      (function(){
-                                        const orderedQty = parseFloat(orderItem?.quantity?.toString() || '0');
-                                        const giftQty = parseFloat(orderItem?.giftQty?.toString() || '0');
-                                        const totalOrdered = orderedQty + giftQty;
-                                        const received = receivedQuantities[batch.itemId] || 0;
-                                        const remaining = Math.max(0, totalOrdered - received);
-                                        return remaining.toFixed(2);
-                                      })()
-                                    }
+                                    الحد الأقصى المتبقي للاستلام: {remaining.toFixed(2)}
                                   </p>
                                 </div>
                                 <div>
