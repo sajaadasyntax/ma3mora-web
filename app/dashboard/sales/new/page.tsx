@@ -106,11 +106,12 @@ export default function NewSalesInvoicePage() {
   };
 
   const calculateTotal = () => {
-    const customer = customers.find((c) => c.id === formData.customerId);
-    if (!customer) return 0;
+    // Determine pricing tier: use customer type if customer selected, otherwise default to RETAIL
+    const customer = formData.customerId ? customers.find((c) => c.id === formData.customerId) : null;
+    const pricingTier = customer ? customer.type : 'RETAIL';
 
     const subtotal = invoiceItems.reduce((sum, lineItem) => {
-      const prices = lineItem.item.prices.filter((p: any) => p.tier === customer.type);
+      const prices = lineItem.item.prices.filter((p: any) => p.tier === pricingTier);
       if (prices.length === 0) return sum;
       const price = parseFloat(prices[0].price);
       return sum + price * lineItem.quantity;
@@ -129,14 +130,21 @@ export default function NewSalesInvoicePage() {
 
     setSubmitting(true);
     try {
-      await api.createSalesInvoice({
+      const submitData: any = {
         ...formData,
         items: invoiceItems.map((i) => ({
           itemId: i.itemId,
           quantity: i.quantity,
           giftQty: i.giftQty,
         })),
-      });
+      };
+      
+      // Only include customerId if it's provided
+      if (!formData.customerId) {
+        delete submitData.customerId;
+      }
+      
+      await api.createSalesInvoice(submitData);
       alert('تم إنشاء الفاتورة بنجاح');
       router.push('/dashboard/sales');
     } catch (error: any) {
@@ -186,14 +194,13 @@ export default function NewSalesInvoicePage() {
             )}
 
             <Select
-              label="العميل"
+              label="العميل (اختياري)"
               value={formData.customerId}
               onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
               options={[
-                { value: '', label: 'اختر العميل' },
+                { value: '', label: 'بدون عميل (سعر التجزئة)' },
                 ...customers.map((c) => ({ value: c.id, label: c.name })),
               ]}
-              required
             />
 
             <Select

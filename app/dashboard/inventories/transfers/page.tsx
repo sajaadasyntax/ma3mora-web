@@ -18,6 +18,7 @@ export default function InventoryTransfersPage() {
   const [sourceStocks, setSourceStocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   
   const [form, setForm] = useState({
     fromInventoryId: '',
@@ -94,14 +95,24 @@ export default function InventoryTransfersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     
     // Validate form data before submission
     if (!form.fromInventoryId || !form.toInventoryId || !form.itemId) {
       alert('يرجى ملء جميع الحقول المطلوبة');
       return;
     }
+    if (form.fromInventoryId === form.toInventoryId) {
+      alert('لا يمكن نقل الأصناف من مخزن إلى نفسه');
+      return;
+    }
+    const sourceHasItem = sourceStocks.some((s) => s.itemId === form.itemId);
+    if (!sourceHasItem) {
+      alert('الصنف المحدد غير متاح في المخزن المصدر');
+      return;
+    }
     
-    const quantity = parseFloat(form.quantity);
+    const quantity = parseFloat((form.quantity || '').toString().replace(',', '.').trim());
     if (isNaN(quantity) || quantity <= 0) {
       alert('يرجى إدخال كمية صالحة أكبر من صفر');
       return;
@@ -113,6 +124,7 @@ export default function InventoryTransfersPage() {
     }
     
     try {
+      setSubmitting(true);
       await api.createInventoryTransfer({
         fromInventoryId: form.fromInventoryId,
         toInventoryId: form.toInventoryId,
@@ -135,6 +147,8 @@ export default function InventoryTransfersPage() {
       const errorMessage = error?.error || error?.message || 'فشل نقل الأصناف';
       alert(errorMessage);
       console.error('Transfer error:', error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -143,6 +157,11 @@ export default function InventoryTransfersPage() {
     const stock = sourceStocks.find((s) => s.itemId === itemId);
     if (stock) {
       // Auto-fill max available quantity as a suggestion
+      const currentQty = parseFloat((form.quantity || '').toString().replace(',', '.'));
+      const maxQty = typeof stock.quantity === 'string' ? parseFloat(stock.quantity) || 0 : stock.quantity || 0;
+      if (!isNaN(currentQty) && currentQty > maxQty) {
+        setForm((prev) => ({ ...prev, quantity: maxQty.toString() }));
+      }
     }
   };
 
@@ -226,7 +245,7 @@ export default function InventoryTransfersPage() {
               <Select
                 label="من مخزن"
                 value={form.fromInventoryId}
-                onChange={(e) => setForm((prev) => ({ ...prev, fromInventoryId: e.target.value, itemId: '' }))}
+                onChange={(e) => setForm((prev) => ({ ...prev, fromInventoryId: e.target.value, itemId: '', quantity: '' }))}
                 options={inventories.map((inv) => ({ value: inv.id, label: inv.name }))}
                 required
               />
@@ -263,7 +282,7 @@ export default function InventoryTransfersPage() {
                 required
                 max={hasStock ? availableQtyNum.toString() : undefined}
                 min={hasStock ? '0.01' : undefined}
-                disabled={!hasStock}
+                disabled={!hasStock || submitting}
               />
 
               <div className="col-span-2">
@@ -287,7 +306,7 @@ export default function InventoryTransfersPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit" disabled={!hasStock}>نقل الأصناف</Button>
+              <Button type="submit" disabled={!hasStock || submitting}>نقل الأصناف</Button>
               <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
                 إلغاء
               </Button>
