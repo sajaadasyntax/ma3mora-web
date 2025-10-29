@@ -189,7 +189,7 @@ export default function AccountingPage() {
             </a>
             <a
               href="/dashboard/accounting/expenses"
-              className="block px-4 py-2 bg-orange-50 hover:bg-orange-100 rounded"
+            className="block px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded text-center font-semibold"
             >
               المنصرفات
             </a>
