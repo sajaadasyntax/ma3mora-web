@@ -353,6 +353,10 @@ export const api = {
   getDailyIncomeLoss: (params?: { date?: string; startDate?: string; endDate?: string; method?: string }) =>
     fetchAPI('/accounting/daily-income-loss', { params }),
 
+  // Commission Report
+  getCommissionReport: (params?: { startDate?: string; endDate?: string; supplierId?: string; inventoryId?: string; section?: string }) =>
+    fetchAPI('/accounting/commissions', { params }),
+
   // Expiry Management
   getExpiryAlerts: (days?: number) =>
     fetchAPI('/inventories/expiry-alerts', { params: days ? { days: days.toString() } : undefined }),
