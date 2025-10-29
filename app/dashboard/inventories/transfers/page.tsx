@@ -167,6 +167,8 @@ export default function InventoryTransfersPage() {
   const availableQuantity = form.itemId
     ? sourceStocks.find((s) => s.itemId === form.itemId)?.quantity || 0
     : 0;
+  const availableQtyNum = typeof availableQuantity === 'string' ? parseFloat(availableQuantity) || 0 : availableQuantity;
+  const hasStock = !!form.itemId && availableQtyNum > 0;
 
   return (
     <div>
@@ -236,15 +238,19 @@ export default function InventoryTransfersPage() {
                 value={form.quantity}
                 onChange={(e) => setForm((prev) => ({ ...prev, quantity: e.target.value }))}
                 required
-                max={availableQuantity.toString()}
-                min="0.01"
+                max={hasStock ? availableQtyNum.toString() : undefined}
+                min={hasStock ? '0.01' : undefined}
+                disabled={!hasStock}
               />
 
               <div className="col-span-2">
                 {form.itemId && (
                   <p className="text-sm text-gray-600 mb-2">
-                    الكمية المتاحة: <span className="font-semibold">{formatNumber(availableQuantity)}</span>
+                    الكمية المتاحة: <span className="font-semibold">{formatNumber(availableQtyNum)}</span>
                   </p>
+                )}
+                {form.itemId && !hasStock && (
+                  <p className="text-sm text-red-600">لا توجد كمية متاحة لهذا الصنف في المخزن المحدد.</p>
                 )}
               </div>
 
@@ -258,7 +264,7 @@ export default function InventoryTransfersPage() {
             </div>
 
             <div className="flex gap-2">
-              <Button type="submit">نقل الأصناف</Button>
+              <Button type="submit" disabled={!hasStock}>نقل الأصناف</Button>
               <Button type="button" variant="secondary" onClick={() => setShowForm(false)}>
                 إلغاء
               </Button>
