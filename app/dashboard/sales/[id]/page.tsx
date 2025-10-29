@@ -292,7 +292,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-gray-600">العميل</p>
-              <p className="font-semibold">{invoice.customer.name}</p>
+              <p className="font-semibold">{invoice.customer?.name || 'بدون عميل'}</p>
             </div>
             <div>
               <p className="text-gray-600">المخزن</p>

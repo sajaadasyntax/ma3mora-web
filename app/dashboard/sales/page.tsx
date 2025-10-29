@@ -40,7 +40,7 @@ export default function SalesPage() {
     {
       key: 'customer',
       label: 'العميل',
-      render: (value: any) => value.name,
+      render: (value: any) => value?.name || 'بدون عميل',
     },
     {
       key: 'inventory',
