@@ -153,6 +153,24 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  // Uploads
+  uploadFile: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return fetch(`${API_URL}/uploads`, {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    }).then(async (res) => {
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        const err = new Error(errJson.error || 'فشل رفع الملف');
+        throw err;
+      }
+      return res.json();
+    });
+  },
+
   // Procurement
   getProcOrders: (params?: any) =>
     fetchAPI('/procurement/orders', { params }),

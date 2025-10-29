@@ -44,6 +44,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
     receiptNumber: '',
   });
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string>('');
   const [duplicateError, setDuplicateError] = useState<any>(null);
   const isAuditor = useIsAuditor();
 
@@ -81,16 +82,28 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
     }
   };
 
-  const handleReceiptImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReceiptImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate type and size (<= 2MB)
+      if (!file.type.startsWith('image/')) {
+        setUploadError('الرجاء اختيار صورة صحيحة');
+        return;
+      }
+      const maxSize = 2 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setUploadError('حجم الصورة كبير. الحد الأقصى 2 ميغابايت');
+        return;
+      }
+      setUploadError('');
       setReceiptImage(file);
-      // Create a local URL for preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPaymentData({ ...paymentData, receiptUrl: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const result = await api.uploadFile(file);
+        setPaymentData({ ...paymentData, receiptUrl: result.url });
+      } catch (err: any) {
+        setUploadError(err.message || 'فشل رفع الصورة');
+        setReceiptImage(null);
+      }
     }
   };
 
@@ -521,6 +534,9 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                       onChange={handleReceiptImageChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
+                    {uploadError && (
+                      <div className="mt-2 text-sm text-red-600">{uploadError}</div>
+                    )}
                     {receiptImage && (
                       <div className="mt-2">
                         <img 

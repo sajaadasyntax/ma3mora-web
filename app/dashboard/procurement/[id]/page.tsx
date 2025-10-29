@@ -46,6 +46,7 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     receiptUrl: '',
   });
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string>('');
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [cancelForm, setCancelForm] = useState({
     reason: '',
@@ -159,18 +160,30 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     }
   };
 
-  const handleReceiptImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReceiptImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) {
       setReceiptImage(null);
       return;
     }
+    if (!file.type.startsWith('image/')) {
+      setUploadError('الرجاء اختيار صورة صحيحة');
+      return;
+    }
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setUploadError('حجم الصورة كبير. الحد الأقصى 2 ميغابايت');
+      return;
+    }
+    setUploadError('');
     setReceiptImage(file);
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPaymentForm({ ...paymentForm, receiptUrl: reader.result as string });
-    };
-    reader.readAsDataURL(file);
+    try {
+      const result = await api.uploadFile(file as any);
+      setPaymentForm({ ...paymentForm, receiptUrl: result.url });
+    } catch (err: any) {
+      setUploadError(err.message || 'فشل رفع الصورة');
+      setReceiptImage(null);
+    }
   };
 
   const handleCancel = async (e: React.FormEvent) => {
@@ -687,6 +700,9 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                       onChange={handleReceiptImageChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     />
+                {uploadError && (
+                  <div className="mt-2 text-sm text-red-600">{uploadError}</div>
+                )}
                     {receiptImage && paymentForm.receiptUrl && (
                       <div className="mt-2">
                         <img
