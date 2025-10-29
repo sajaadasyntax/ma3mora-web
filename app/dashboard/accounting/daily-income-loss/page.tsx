@@ -418,6 +418,130 @@ export default function DailyIncomeLossPage() {
               </div>
             </div>
           )}
+
+          {/* Profit/Loss and Liquid Cash by Payment Method */}
+          {(reportData.summary.profitLossByMethod || reportData.summary.liquidCashByMethod) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+              {reportData.summary.profitLossByMethod && (
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <h3 className="text-lg font-semibold text-green-800 mb-3">صافي الربح/الخسارة حسب طريقة الدفع</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">كاش:</span>
+                      <span className={`font-semibold ${
+                        parseFloat(reportData.summary.profitLossByMethod.CASH) >= 0 ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {formatCurrency(Math.abs(parseFloat(reportData.summary.profitLossByMethod.CASH)))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">بنكك:</span>
+                      <span className={`font-semibold ${
+                        parseFloat(reportData.summary.profitLossByMethod.BANK) >= 0 ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {formatCurrency(Math.abs(parseFloat(reportData.summary.profitLossByMethod.BANK)))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">بنك النيل:</span>
+                      <span className={`font-semibold ${
+                        parseFloat(reportData.summary.profitLossByMethod.BANK_NILE) >= 0 ? 'text-green-700' : 'text-red-700'
+                      }`}>
+                        {formatCurrency(Math.abs(parseFloat(reportData.summary.profitLossByMethod.BANK_NILE)))}
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-green-200">
+                      <span className="font-semibold text-gray-800">الإجمالي:</span>
+                      <span className={`text-xl font-bold ${
+                        parseFloat(reportData.summary.profitLossByMethod.total) >= 0 ? 'text-green-800' : 'text-red-800'
+                      }`}>
+                        {formatCurrency(Math.abs(parseFloat(reportData.summary.profitLossByMethod.total)))}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">(يستثني التحويلات بين الحسابات)</p>
+                </div>
+              )}
+              
+              {reportData.summary.liquidCashByMethod && (
+                <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                  <h3 className="text-lg font-semibold text-indigo-800 mb-3">السيولة النقدية حسب طريقة الدفع</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">كاش:</span>
+                      <span className="font-semibold text-indigo-700">{formatCurrency(parseFloat(reportData.summary.liquidCashByMethod.CASH))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">بنكك:</span>
+                      <span className="font-semibold text-indigo-700">{formatCurrency(parseFloat(reportData.summary.liquidCashByMethod.BANK))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">بنك النيل:</span>
+                      <span className="font-semibold text-indigo-700">{formatCurrency(parseFloat(reportData.summary.liquidCashByMethod.BANK_NILE))}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-indigo-200">
+                      <span className="font-semibold text-gray-800">الإجمالي:</span>
+                      <span className="text-xl font-bold text-indigo-800">{formatCurrency(parseFloat(reportData.summary.liquidCashByMethod.total))}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">(يشمل التحويلات بين الحسابات)</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Income and Losses Breakdown by Payment Method */}
+          {(reportData.summary.incomeByMethod || reportData.summary.lossesByMethod) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+              {reportData.summary.incomeByMethod && (
+                <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
+                  <h3 className="text-lg font-semibold text-teal-800 mb-3">الإيرادات حسب طريقة الدفع</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">كاش:</span>
+                      <span className="font-semibold text-teal-700">{formatCurrency(parseFloat(reportData.summary.incomeByMethod.CASH))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">بنكك:</span>
+                      <span className="font-semibold text-teal-700">{formatCurrency(parseFloat(reportData.summary.incomeByMethod.BANK))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">بنك النيل:</span>
+                      <span className="font-semibold text-teal-700">{formatCurrency(parseFloat(reportData.summary.incomeByMethod.BANK_NILE))}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-teal-200">
+                      <span className="font-semibold text-gray-800">الإجمالي:</span>
+                      <span className="text-xl font-bold text-teal-800">{formatCurrency(parseFloat(reportData.summary.totalIncome))}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {reportData.summary.lossesByMethod && (
+                <div className="p-4 bg-pink-50 rounded-lg border border-pink-200">
+                  <h3 className="text-lg font-semibold text-pink-800 mb-3">المنصرفات حسب طريقة الدفع</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">كاش:</span>
+                      <span className="font-semibold text-pink-700">{formatCurrency(parseFloat(reportData.summary.lossesByMethod.CASH))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">بنكك:</span>
+                      <span className="font-semibold text-pink-700">{formatCurrency(parseFloat(reportData.summary.lossesByMethod.BANK))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-700">بنك النيل:</span>
+                      <span className="font-semibold text-pink-700">{formatCurrency(parseFloat(reportData.summary.lossesByMethod.BANK_NILE))}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-pink-200">
+                      <span className="font-semibold text-gray-800">الإجمالي:</span>
+                      <span className="text-xl font-bold text-pink-800">{formatCurrency(parseFloat(reportData.summary.totalLosses))}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       )}
 
