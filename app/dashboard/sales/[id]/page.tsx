@@ -34,7 +34,9 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [delivering, setDelivering] = useState(false);
   const [showPartialForm, setShowPartialForm] = useState(false);
+  const [isFullByBatches, setIsFullByBatches] = useState(false);
   const [allocations, setAllocations] = useState<Record<string, { giftQty: string; batches: Array<{ batchId: string; quantity: string }> }>>({});
+  const [batchMeta, setBatchMeta] = useState<Record<string, any[]>>({});
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [paymentData, setPaymentData] = useState({
     amount: '',
@@ -160,6 +162,32 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
       ...prev,
       [itemId]: prev[itemId] || { giftQty: '', batches: batches.map((b: any) => ({ batchId: b.id, quantity: '' })) },
     }));
+    setBatchMeta(prev => ({ ...prev, [itemId]: batches }));
+  };
+
+  const loadAllBatchesForFullDelivery = async () => {
+    if (!invoice) return;
+    // Load batches for all items and prefill quantities to ordered qty (qty + giftQty)
+    const entries = await Promise.all(
+      invoice.items.map(async (invItem: any) => {
+        const batches = await api.getStockBatches(invoice.inventoryId, invItem.itemId);
+        // Prefill using FIFO order as returned by API; limit by ordered qty
+        const ordered = parseFloat(invItem.quantity) + parseFloat(invItem.giftQty || 0);
+        let remaining = isNaN(ordered) ? 0 : ordered;
+        const prefilled = batches.map((b: any) => {
+          if (remaining <= 0) return { batchId: b.id, quantity: '' };
+          const avail = parseFloat(b.quantity);
+          const take = Math.min(avail, remaining);
+          remaining -= take;
+          return { batchId: b.id, quantity: take > 0 ? String(take) : '' };
+        });
+        setBatchMeta(prev => ({ ...prev, [invItem.itemId]: batches }));
+        return [invItem.itemId, { giftQty: '', batches: prefilled }] as const;
+      })
+    );
+    setAllocations(Object.fromEntries(entries));
+    setIsFullByBatches(true);
+    setShowPartialForm(true);
   };
 
   const handlePartialDeliver = async (e: React.FormEvent) => {
@@ -428,18 +456,30 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <Button 
-                        onClick={() => setShowPartialForm(!showPartialForm)}
+                      <Button
+                        onClick={() => {
+                          setIsFullByBatches(false);
+                          setShowPartialForm(!showPartialForm);
+                        }}
                         disabled={delivering}
                         className="bg-purple-600 hover:bg-purple-700"
                       >
-                        {showPartialForm ? 'إلغاء' : 'تسليم جزئي حسب الدُفعات'}
+                        {showPartialForm && !isFullByBatches ? 'إلغاء' : 'تسليم جزئي حسب الدُفعات'}
                       </Button>
-                      <Button 
+                      {invoice.deliveryStatus === 'NOT_DELIVERED' && (
+                        <Button
+                          onClick={loadAllBatchesForFullDelivery}
+                          disabled={delivering}
+                          className="bg-indigo-600 hover:bg-indigo-700"
+                        >
+                          {isFullByBatches ? 'إعادة التحميل' : 'تسليم كامل باختيار الدُفعات'}
+                        </Button>
+                      )}
+                      <Button
                         onClick={handleDeliver}
                         disabled={delivering}
                       >
-                        {delivering ? 'جاري التسليم...' : 'تسليم كامل (FIFO)'}
+                        {delivering ? 'جاري التسليم...' : 'تسليم كامل (تلقائي FIFO)'}
                       </Button>
                     </div>
                   )}
@@ -585,21 +625,23 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
              )}
 
              {/* Partial Delivery Form */}
-             {user?.role === 'INVENTORY' && invoice.paymentConfirmed && showPartialForm && (
+            {user?.role === 'INVENTORY' && invoice.paymentConfirmed && showPartialForm && (
                <form onSubmit={handlePartialDeliver} className="mt-4 p-4 border rounded-lg bg-gray-50">
-                 <h4 className="font-semibold mb-4">تخصيص الكميات حسب الدُفعات</h4>
+                <h4 className="font-semibold mb-4">
+                  {isFullByBatches ? 'تسليم كامل باختيار الدُفعات' : 'تخصيص الكميات حسب الدُفعات'}
+                </h4>
                  <div className="space-y-6">
                    {invoice.items.map((invItem: any) => (
                      <div key={invItem.id} className="p-3 bg-white rounded border">
                        <div className="flex items-center justify-between">
                          <div>
                            <div className="font-semibold">{invItem.item.name}</div>
-                           <div className="text-sm text-gray-600">الكمية المطلوبة: {parseFloat(invItem.quantity) + parseFloat(invItem.giftQty)}</div>
+                          <div className="text-sm text-gray-600">الكمية المطلوبة: {parseFloat(invItem.quantity) + parseFloat(invItem.giftQty)}</div>
                          </div>
                          <Button
                            type="button"
                            variant="secondary"
-                           onClick={() => loadBatchesForItem(invItem.itemId)}
+                          onClick={() => loadBatchesForItem(invItem.itemId)}
                          >
                            تحميل الدُفعات
                          </Button>
@@ -608,27 +650,37 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                        {allocations[invItem.itemId]?.batches && (
                          <div className="mt-3 space-y-2">
                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                             {allocations[invItem.itemId].batches.map((b, idx) => (
-                               <div key={b.batchId} className="flex items-center gap-2">
-                                 <div className="text-sm text-gray-600">دفعة #{idx + 1}</div>
-                                 <Input
-                                   type="number"
-                                   step="0.01"
-                                   placeholder="الكمية"
-                                   value={b.quantity}
-                                   onChange={(e) => {
-                                     const val = e.target.value;
-                                     setAllocations(prev => ({
-                                       ...prev,
-                                       [invItem.itemId]: {
-                                         ...prev[invItem.itemId],
-                                         batches: prev[invItem.itemId].batches.map((bb) => bb.batchId === b.batchId ? { ...bb, quantity: val } : bb),
-                                       },
-                                     }));
-                                   }}
-                                 />
-                               </div>
-                             ))}
+                            {allocations[invItem.itemId].batches.map((b, idx) => {
+                              const batchMeta = (invoice as any)._batchCache?.[invItem.itemId]?.find((x: any) => x.id === b.batchId);
+                              return (
+                                <div key={b.batchId} className="flex items-center gap-2">
+                                  <div className="text-sm text-gray-600">
+                                    دفعة #{idx + 1}
+                                    {batchMeta && (
+                                      <span className="ml-2 text-xs text-gray-500">
+                                        متاح: {parseFloat(batchMeta.quantity)}{batchMeta.expiryDate ? ` · انتهاء: ${new Date(batchMeta.expiryDate).toLocaleDateString('ar-EG')}` : ''}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="الكمية"
+                                    value={b.quantity}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setAllocations(prev => ({
+                                        ...prev,
+                                        [invItem.itemId]: {
+                                          ...prev[invItem.itemId],
+                                          batches: prev[invItem.itemId].batches.map((bb) => bb.batchId === b.batchId ? { ...bb, quantity: val } : bb),
+                                        },
+                                      }));
+                                    }}
+                                  />
+                                </div>
+                              );
+                            })}
                            </div>
                            <div className="mt-2">
                              <Input
@@ -647,9 +699,9 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                      </div>
                    ))}
                  </div>
-                 <div className="mt-4 flex gap-2">
-                   <Button type="submit" disabled={delivering}>{delivering ? 'جاري الحفظ...' : 'حفظ التسليم الجزئي'}</Button>
-                   <Button type="button" variant="secondary" onClick={() => setShowPartialForm(false)}>إلغاء</Button>
+                <div className="mt-4 flex gap-2">
+                  <Button type="submit" disabled={delivering}>{delivering ? 'جاري الحفظ...' : (isFullByBatches ? 'تأكيد التسليم الكامل' : 'حفظ التسليم الجزئي')}</Button>
+                  <Button type="button" variant="secondary" onClick={() => { setShowPartialForm(false); setIsFullByBatches(false); }}>إلغاء</Button>
                  </div>
                </form>
              )}
