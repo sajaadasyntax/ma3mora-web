@@ -200,9 +200,8 @@ export default function DailyIncomeLossPage() {
               ${day.losses.length === 0 ? '<tr><td colspan="6" class="text-center">لا توجد منصرفات</td></tr>' : ''}
             </tbody>
           </table>
-        ` : ''}
-        
-        ${day.transfers && day.transfers.length > 0 ? `
+
+          ${day.transfers && day.transfers.length > 0 ? `
           <h3>التحويلات بين الحسابات (${day.transfers.length} معاملة)</h3>
           <table>
             <thead>
@@ -237,9 +236,9 @@ export default function DailyIncomeLossPage() {
               }).join('')}
             </tbody>
           </table>
-        ` : ''}
-      </div>
-    `;
+          ` : ''}
+        </div>
+      `;
     });
 
     html += `
