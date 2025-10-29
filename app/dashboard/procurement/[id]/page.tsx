@@ -64,6 +64,7 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
   const [showGiftsForm, setShowGiftsForm] = useState(false);
   const [giftsForm, setGiftsForm] = useState<Array<{ itemId: string; giftQty: number }>>([]);
   const [addingGifts, setAddingGifts] = useState(false);
+  const [assigningDelivered, setAssigningDelivered] = useState(false);
 
   useEffect(() => {
     loadOrder();
@@ -395,7 +396,6 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     return true;
   })();
 
-  const [assigningDelivered, setAssigningDelivered] = useState(false);
   const handleAssignDelivered = async () => {
     if (!isFullyReceived) {
       alert('لا يمكن التعيين كمستلم كامل قبل اكتمال استلام جميع الكميات.');
