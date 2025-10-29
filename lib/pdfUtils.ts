@@ -1044,6 +1044,354 @@ export function generateCustomerReportPDF(customer: any) {
   generatePDF(htmlContent, `تقرير_${customer.name}`);
 }
 
+export function generateSalesReportPDF(reportData: any, filters: any) {
+  if (!reportData || !reportData.data || reportData.data.length === 0) {
+    alert('لا توجد بيانات للطباعة');
+    return;
+  }
+
+  const currentDate = new Date().toLocaleDateString('ar-SD', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const periodLabel = filters.period === 'monthly' ? 'شهري' : 'يومي';
+  const dateRange = filters.startDate && filters.endDate 
+    ? `${filters.startDate} - ${filters.endDate}`
+    : 'جميع التواريخ';
+
+  let htmlContent = `
+    <div class="header">
+      <h1>تقرير المبيعات ${periodLabel}</h1>
+      <div class="date">تاريخ التقرير: ${currentDate} | الفترة: ${dateRange}</div>
+    </div>
+
+    <div class="section">
+      <h2>ملخص التقرير</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>البند</th>
+            <th>القيمة</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>إجمالي الفواتير</td>
+            <td>${reportData.summary.totalInvoices}</td>
+          </tr>
+          <tr>
+            <td>إجمالي المبيعات</td>
+            <td>${formatCurrency(reportData.summary.totalSales)}</td>
+          </tr>
+          <tr>
+            <td>المحصل</td>
+            <td class="positive">${formatCurrency(reportData.summary.totalPaid)}</td>
+          </tr>
+          <tr>
+            <td>المتبقي (ذمم)</td>
+            <td class="negative">${formatCurrency(reportData.summary.totalOutstanding)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  reportData.data.forEach((periodData: any) => {
+    const periodTitle = filters.period === 'daily' 
+      ? formatDate(periodData.date)
+      : periodData.month;
+
+    htmlContent += `
+      <div class="section">
+        <h2>الفترة: ${periodTitle}</h2>
+        
+        <div class="summary">
+          <div class="summary-row">
+            <span>عدد الفواتير:</span>
+            <span>${periodData.invoiceCount}</span>
+          </div>
+          <div class="summary-row">
+            <span>إجمالي المبيعات:</span>
+            <span class="amount">${formatCurrency(periodData.totalSales)}</span>
+          </div>
+          <div class="summary-row">
+            <span>المحصل:</span>
+            <span class="amount positive">${formatCurrency(periodData.totalPaid)}</span>
+          </div>
+        </div>
+
+        ${Object.keys(periodData.paymentMethods).length > 0 ? `
+        <h3>طرق الدفع</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>طريقة الدفع</th>
+              <th>عدد الفواتير</th>
+              <th>المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(periodData.paymentMethods).map(([method, data]: [string, any]) => `
+              <tr>
+                <td>${method === 'CASH' ? 'كاش' : method === 'BANK' ? 'بنكك' : 'بنك النيل'}</td>
+                <td>${data.count}</td>
+                <td>${formatCurrency(data.amount)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ` : ''}
+
+        ${Object.keys(periodData.items).length > 0 ? `
+        <h3>الأصناف المباعة</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>الصنف</th>
+              <th>الكمية</th>
+              <th>سعر الوحدة</th>
+              <th>الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(periodData.items).map(([itemName, itemData]: [string, any]) => `
+              <tr>
+                <td>${itemName}</td>
+                <td>${itemData.quantity}</td>
+                <td>${formatCurrency(itemData.unitPrice)}</td>
+                <td>${formatCurrency(itemData.totalAmount)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ` : ''}
+
+        ${periodData.invoices && periodData.invoices.length > 0 ? `
+        <h3>تفاصيل الفواتير</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>رقم الفاتورة</th>
+              <th>العميل</th>
+              <th>المخزن</th>
+              <th>طريقة الدفع</th>
+              <th>المجموع</th>
+              <th>التاريخ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${periodData.invoices.map((invoice: any) => `
+              <tr>
+                <td>${invoice.invoiceNumber}</td>
+                <td>${invoice.customer?.name || 'بدون عميل'}</td>
+                <td>${invoice.inventory.name}</td>
+                <td>${invoice.paymentMethod === 'CASH' ? 'كاش' : invoice.paymentMethod === 'BANK' ? 'بنكك' : 'بنك النيل'}</td>
+                <td>${formatCurrency(invoice.total)}</td>
+                <td>${formatDate(invoice.createdAt)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ` : ''}
+      </div>
+    `;
+  });
+
+  htmlContent += `
+    <div class="footer">
+      <p>تم إنشاء هذا التقرير في ${new Date().toLocaleString('ar-SD')}</p>
+    </div>
+  `;
+
+  generatePDF(htmlContent, 'تقرير_المبيعات');
+}
+
+export function printProcurementReport(reportData: any, filters: any) {
+  if (!reportData || !reportData.data || reportData.data.length === 0) {
+    alert('لا توجد بيانات للطباعة');
+    return;
+  }
+
+  const currentDate = new Date().toLocaleDateString('ar-SD', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const periodLabel = filters.period === 'monthly' ? 'شهري' : 'يومي';
+  const dateRange = filters.startDate && filters.endDate 
+    ? `${filters.startDate} - ${filters.endDate}`
+    : 'جميع التواريخ';
+
+  let htmlContent = `
+    <div class="header">
+      <h1>تقرير المشتريات ${periodLabel}</h1>
+      <div class="date">تاريخ التقرير: ${currentDate} | الفترة: ${dateRange}</div>
+    </div>
+
+    <div class="section">
+      <h2>ملخص التقرير</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>البند</th>
+            <th>القيمة</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>إجمالي الأوامر</td>
+            <td>${reportData.summary.totalOrders}</td>
+          </tr>
+          <tr>
+            <td>إجمالي المشتريات</td>
+            <td class="negative">${formatCurrency(reportData.summary.totalAmount)}</td>
+          </tr>
+          <tr>
+            <td>أوامر مدفوعة</td>
+            <td class="positive">${reportData.summary.paidOrders}</td>
+          </tr>
+          <tr>
+            <td>أوامر غير مدفوعة</td>
+            <td class="negative">${reportData.summary.unpaidOrders}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  reportData.data.forEach((periodData: any) => {
+    const periodTitle = filters.period === 'daily' 
+      ? formatDate(periodData.date)
+      : periodData.month;
+
+    htmlContent += `
+      <div class="section">
+        <h2>الفترة: ${periodTitle}</h2>
+        
+        <div class="summary">
+          <div class="summary-row">
+            <span>عدد الأوامر:</span>
+            <span>${periodData.orderCount}</span>
+          </div>
+          <div class="summary-row">
+            <span>إجمالي المشتريات:</span>
+            <span class="amount negative">${formatCurrency(periodData.totalAmount)}</span>
+          </div>
+        </div>
+
+        ${Object.keys(periodData.statuses).length > 0 ? `
+        <h3>حالات الأوامر</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>الحالة</th>
+              <th>عدد الأوامر</th>
+              <th>المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(periodData.statuses).map(([status, data]: [string, any]) => `
+              <tr>
+                <td>${status === 'CREATED' ? 'جديد' : status === 'RECEIVED' ? 'مستلم' : status === 'PARTIAL' ? 'مستلم جزئياً' : 'ملغي'}</td>
+                <td>${data.count}</td>
+                <td>${formatCurrency(data.amount)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ` : ''}
+
+        ${Object.keys(periodData.suppliers).length > 0 ? `
+        <h3>الموردين</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>المورد</th>
+              <th>عدد الأوامر</th>
+              <th>المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(periodData.suppliers).map(([supplierName, data]: [string, any]) => `
+              <tr>
+                <td>${supplierName}</td>
+                <td>${data.count}</td>
+                <td>${formatCurrency(data.amount)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ` : ''}
+
+        ${Object.keys(periodData.items).length > 0 ? `
+        <h3>الأصناف المشتراة</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>الصنف</th>
+              <th>الكمية</th>
+              <th>تكلفة الوحدة</th>
+              <th>الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(periodData.items).map(([itemName, itemData]: [string, any]) => `
+              <tr>
+                <td>${itemName}</td>
+                <td>${itemData.quantity}</td>
+                <td>${formatCurrency(itemData.unitCost)}</td>
+                <td>${formatCurrency(itemData.totalAmount)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ` : ''}
+
+        ${periodData.orders && periodData.orders.length > 0 ? `
+        <h3>تفاصيل الأوامر</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>رقم الأمر</th>
+              <th>المورد</th>
+              <th>المخزن</th>
+              <th>الحالة</th>
+              <th>الدفع</th>
+              <th>المجموع</th>
+              <th>التاريخ</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${periodData.orders.map((order: any) => `
+              <tr>
+                <td>${order.orderNumber}</td>
+                <td>${order.supplier.name}</td>
+                <td>${order.inventory.name}</td>
+                <td>${order.status === 'CREATED' ? 'جديد' : order.status === 'RECEIVED' ? 'مستلم' : order.status === 'PARTIAL' ? 'مستلم جزئياً' : 'ملغي'}</td>
+                <td>${order.paymentConfirmed ? '✓ مؤكد' : '⏳ معلق'}</td>
+                <td>${formatCurrency(order.total)}</td>
+                <td>${formatDate(order.createdAt)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ` : ''}
+      </div>
+    `;
+  });
+
+  htmlContent += `
+    <div class="footer">
+      <p>تم إنشاء هذا التقرير في ${new Date().toLocaleString('ar-SD')}</p>
+    </div>
+  `;
+
+  generatePDF(htmlContent, 'تقرير_المشتريات');
+}
+
 // Helper function to format currency
 function formatCurrency(amount: number | string): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;
@@ -1053,4 +1401,13 @@ function formatCurrency(amount: number | string): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(num);
+}
+
+function formatDate(date: string | Date): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return new Intl.DateTimeFormat('ar-SD', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(d);
 }

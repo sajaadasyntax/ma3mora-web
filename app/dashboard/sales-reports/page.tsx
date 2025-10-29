@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import Select from '@/components/Select';
 import Input from '@/components/Input';
 import { formatCurrency, formatDateTime, paymentMethodLabels, sectionLabels } from '@/lib/utils';
+import { generateSalesReportPDF } from '@/lib/pdfUtils';
 
 export default function SalesReportsPage() {
   const { user } = useUser();
@@ -98,13 +99,13 @@ export default function SalesReportsPage() {
     <div>
       <div className="flex justify-between items-center mb-6 print:hidden">
         <h1 className="text-3xl font-bold text-gray-900">تقارير المبيعات</h1>
-        <Button onClick={() => window.print()}>
+        <Button onClick={() => generateSalesReportPDF(reportData, filters)}>
           طباعة
         </Button>
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
+      <Card className="mb-6 print:hidden">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
