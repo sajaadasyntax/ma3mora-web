@@ -42,7 +42,10 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     amount: '',
     method: 'CASH',
     notes: '',
+    receiptNumber: '',
+    receiptUrl: '',
   });
+  const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [cancelForm, setCancelForm] = useState({
     reason: '',
@@ -140,16 +143,34 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
     e.preventDefault();
     try {
       await api.addProcOrderPayment(params.id, {
-        ...paymentForm,
         amount: parseFloat(paymentForm.amount),
+        method: paymentForm.method,
+        notes: paymentForm.notes,
+        receiptUrl: paymentForm.receiptUrl || undefined,
+        receiptNumber: paymentForm.method !== 'CASH' ? paymentForm.receiptNumber : undefined,
       });
-      setPaymentForm({ amount: '', method: 'CASH', notes: '' });
+      setPaymentForm({ amount: '', method: 'CASH', notes: '', receiptNumber: '', receiptUrl: '' });
+      setReceiptImage(null);
       setShowPaymentForm(false);
       await loadOrder();
       alert('تم إضافة الدفعة بنجاح');
     } catch (error: any) {
       alert(error.message || 'فشل إضافة الدفعة');
     }
+  };
+
+  const handleReceiptImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setReceiptImage(null);
+      return;
+    }
+    setReceiptImage(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPaymentForm({ ...paymentForm, receiptUrl: reader.result as string });
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleCancel = async (e: React.FormEvent) => {
@@ -408,6 +429,28 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
       },
     },
     {
+      key: 'receiptNumber',
+      label: 'رقم الإيصال',
+      render: (value: any, row: any) => row.receiptNumber || '-',
+    },
+    {
+      key: 'receiptUrl',
+      label: 'الإيصال',
+      render: (value: any, row: any) =>
+        row.receiptUrl ? (
+          <a
+            href={row.receiptUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
+            عرض الإيصال
+          </a>
+        ) : (
+          '-'
+        ),
+    },
+    {
       key: 'recordedByUser',
       label: 'سجل بواسطة',
       render: (value: any) => value.username,
@@ -625,6 +668,43 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                 ]}
                 required
               />
+              {paymentForm.method !== 'CASH' && (
+                <>
+                  <Input
+                    label="رقم الإيصال (مطلوب)"
+                    value={paymentForm.receiptNumber}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, receiptNumber: e.target.value })}
+                    placeholder="أدخل رقم الإيصال"
+                    required
+                  />
+                  <div className="mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      صورة الإيصال (اختياري)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleReceiptImageChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    />
+                    {receiptImage && paymentForm.receiptUrl && (
+                      <div className="mt-2">
+                        <img
+                          src={paymentForm.receiptUrl}
+                          alt="Receipt preview"
+                          className="max-w-xs max-h-48 object-contain border rounded"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <Input
+                    label="رابط الإيصال (اختياري إذا تم رفع صورة)"
+                    value={paymentForm.receiptUrl}
+                    onChange={(e) => setPaymentForm({ ...paymentForm, receiptUrl: e.target.value })}
+                    placeholder="أدخل رابط الإيصال"
+                  />
+                </>
+              )}
               <Input
                 label="ملاحظات"
                 value={paymentForm.notes}
