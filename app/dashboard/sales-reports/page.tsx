@@ -96,8 +96,11 @@ export default function SalesReportsPage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 print:hidden">
         <h1 className="text-3xl font-bold text-gray-900">تقارير المبيعات</h1>
+        <Button onClick={() => window.print()}>
+          طباعة
+        </Button>
       </div>
 
       {/* Filters */}
