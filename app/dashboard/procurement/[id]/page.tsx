@@ -220,7 +220,7 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
         method: paymentForm.method,
         notes: paymentForm.notes,
         receiptUrl: paymentForm.receiptUrl || undefined,
-        receiptNumber: paymentForm.method !== 'CASH' ? paymentForm.receiptNumber : undefined,
+        receiptNumber: paymentForm.method !== 'CASH' && paymentForm.method !== 'COMMISSION' ? paymentForm.receiptNumber : undefined,
       });
       setPaymentForm({ amount: '', method: 'CASH', notes: '', receiptNumber: '', receiptUrl: '' });
       setReceiptImage(null);
@@ -576,7 +576,7 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
       key: 'method',
       label: 'طريقة الدفع',
       render: (value: string) => {
-        const methods = { CASH: 'كاش', BANK: 'بنكك', BANK_NILE: 'بنك النيل' };
+        const methods = { CASH: 'كاش', BANK: 'بنكك', BANK_NILE: 'بنك النيل', COMMISSION: 'عمولة' };
         return methods[value as keyof typeof methods] || value;
       },
     },
@@ -817,17 +817,18 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                   { value: 'CASH', label: 'كاش' },
                   { value: 'BANK', label: 'بنكك' },
                   { value: 'BANK_NILE', label: 'بنك النيل' },
+                  { value: 'COMMISSION', label: 'عمولة (مدفوعة من المورد كهدية)' },
                 ]}
                 required
               />
-              {paymentForm.method !== 'CASH' && (
+              {paymentForm.method !== 'CASH' && paymentForm.method !== 'COMMISSION' && (
                 <>
                   <Input
                     label="رقم الإيصال (مطلوب)"
                     value={paymentForm.receiptNumber}
                     onChange={(e) => setPaymentForm({ ...paymentForm, receiptNumber: e.target.value })}
                     placeholder="أدخل رقم الإيصال"
-                    required
+                    required={paymentForm.method !== 'COMMISSION'}
                   />
                   <div className="mb-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
