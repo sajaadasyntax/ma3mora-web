@@ -35,7 +35,7 @@ export default function LoginPage() {
     try {
       const response = await api.login(username, password);
       console.log('تم تسجيل الدخول:', response);
-      router.push('/dashboard');
+      router.push('/dashboard/inventories');
     } catch (err: any) {
       setError(err.message || 'فشل تسجيل الدخول');
     } finally {

@@ -47,7 +47,7 @@ export default function OpeningBalancePage() {
       });
 
       alert('✅ تم حفظ رأس المال الافتتاحي بنجاح! يمكنك الآن الوصول للنظام.');
-      router.push('/dashboard');
+      router.push('/dashboard/accounting');
     } catch (error: any) {
       alert(error.message || 'فشل حفظ رأس المال');
     }

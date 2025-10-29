@@ -107,7 +107,6 @@ export default function DashboardLayout({
   }
 
   const navigation = [
-    { name: 'الرئيسية', href: '/dashboard', roles: ['*'] },
     { name: 'المخازن', href: '/dashboard/inventories', roles: ['*'] },
     { name: 'العملاء', href: '/dashboard/customers', roles: ['SALES_GROCERY', 'SALES_BAKERY', 'ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
     { name: 'فواتير المبيعات', href: '/dashboard/sales', roles: ['SALES_GROCERY', 'SALES_BAKERY', 'INVENTORY', 'ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
