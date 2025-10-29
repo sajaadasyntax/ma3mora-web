@@ -971,13 +971,38 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
                                     value={batch.quantity}
                                     onChange={(e) => {
                                       const newBatches = [...receiveForm.batches];
-                                      newBatches[idx].quantity = parseFloat(e.target.value) || 0;
+                                      const orderedQty = parseFloat(orderItem?.quantity?.toString() || '0');
+                                      const giftQty = parseFloat(orderItem?.giftQty?.toString() || '0');
+                                      const totalOrdered = orderedQty + giftQty;
+                                      const received = receivedQuantities[batch.itemId] || 0;
+                                      const remaining = Math.max(0, totalOrdered - received);
+                                      const nextVal = Math.max(0, Math.min(remaining, parseFloat(e.target.value) || 0));
+                                      newBatches[idx].quantity = nextVal;
                                       setReceiveForm({ ...receiveForm, batches: newBatches });
                                     }}
                                     min="0"
-                                    max={parseFloat(orderItem?.quantity.toString() || '0')}
+                                    max={(function(){
+                                      const orderedQty = parseFloat(orderItem?.quantity?.toString() || '0');
+                                      const giftQty = parseFloat(orderItem?.giftQty?.toString() || '0');
+                                      const totalOrdered = orderedQty + giftQty;
+                                      const received = receivedQuantities[batch.itemId] || 0;
+                                      const remaining = Math.max(0, totalOrdered - received);
+                                      return remaining;
+                                    })()}
                                     required
                                   />
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    الحد الأقصى المتبقي للاستلام: {
+                                      (function(){
+                                        const orderedQty = parseFloat(orderItem?.quantity?.toString() || '0');
+                                        const giftQty = parseFloat(orderItem?.giftQty?.toString() || '0');
+                                        const totalOrdered = orderedQty + giftQty;
+                                        const received = receivedQuantities[batch.itemId] || 0;
+                                        const remaining = Math.max(0, totalOrdered - received);
+                                        return remaining.toFixed(2);
+                                      })()
+                                    }
+                                  </p>
                                 </div>
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
