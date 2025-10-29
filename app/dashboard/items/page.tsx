@@ -159,7 +159,7 @@ export default function ItemsPage() {
       label: 'الإجراءات',
       render: (_: any, row: any) => (
         <div className="flex gap-2">
-          {user?.role === 'ACCOUNTANT' && (
+          {(user?.role === 'ACCOUNTANT' || user?.role === 'MANAGER') && (
             <Button
               size="sm"
               variant="secondary"
