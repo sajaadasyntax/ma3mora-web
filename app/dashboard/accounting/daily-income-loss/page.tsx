@@ -16,6 +16,7 @@ export default function DailyIncomeLossPage() {
     startDate: '',
     endDate: '',
     mode: 'single', // 'single' or 'range'
+    method: '', // 'CASH', 'BANK', 'BANK_NILE', or '' for all
   });
 
   useEffect(() => {
@@ -31,6 +32,9 @@ export default function DailyIncomeLossPage() {
       } else if (filters.mode === 'range' && filters.startDate && filters.endDate) {
         params.startDate = filters.startDate;
         params.endDate = filters.endDate;
+      }
+      if (filters.method) {
+        params.method = filters.method;
       }
       
       const data = await api.getDailyIncomeLoss(params);
@@ -55,11 +59,13 @@ export default function DailyIncomeLossPage() {
       : filters.mode === 'range' && filters.startDate && filters.endDate
       ? `${new Date(filters.startDate).toLocaleDateString('ar-SD')} - ${new Date(filters.endDate).toLocaleDateString('ar-SD')}`
       : 'اليوم';
+    
+    const methodLabel = filters.method ? ` | طريقة الدفع: ${paymentMethodLabels[filters.method as keyof typeof paymentMethodLabels] || filters.method}` : '';
 
     let html = `
       <div class="header">
         <h1>تقرير الإيرادات والمنصرفات اليومي</h1>
-        <div class="date">تاريخ التقرير: ${currentDate} | الفترة: ${dateRange}</div>
+        <div class="date">تاريخ التقرير: ${currentDate} | الفترة: ${dateRange}${methodLabel}</div>
       </div>
 
       <div class="section">
@@ -229,7 +235,7 @@ export default function DailyIncomeLossPage() {
       {/* Filters */}
       <Card className="mb-6 print:hidden">
         <h2 className="text-xl font-semibold mb-4">مرشحات البحث</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">نوع التقرير</label>
             <select
@@ -271,6 +277,20 @@ export default function DailyIncomeLossPage() {
               </div>
             </>
           )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">طريقة الدفع</label>
+            <select
+              value={filters.method}
+              onChange={(e) => setFilters({ ...filters, method: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+            >
+              <option value="">الكل</option>
+              <option value="CASH">كاش</option>
+              <option value="BANK">بنكك</option>
+              <option value="BANK_NILE">بنك النيل</option>
+            </select>
+          </div>
 
           <div className="flex items-end">
             <Button onClick={loadData} className="w-full">تطبيق</Button>

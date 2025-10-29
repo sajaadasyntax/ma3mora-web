@@ -345,7 +345,7 @@ export const api = {
     fetchAPI('/accounting/bank-transactions', { params }),
 
   // Daily Income/Loss Report
-  getDailyIncomeLoss: (params?: { date?: string; startDate?: string; endDate?: string }) =>
+  getDailyIncomeLoss: (params?: { date?: string; startDate?: string; endDate?: string; method?: string }) =>
     fetchAPI('/accounting/daily-income-loss', { params }),
 
   // Expiry Management
