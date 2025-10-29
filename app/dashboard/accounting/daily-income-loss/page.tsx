@@ -302,7 +302,7 @@ export default function DailyIncomeLossPage() {
       {reportData?.summary && (
         <Card className="mb-6">
           <h2 className="text-xl font-semibold mb-4">الملخص الإجمالي</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
               <p className="text-sm text-gray-600 mb-1">إجمالي الإيرادات</p>
               <p className="text-2xl font-bold text-green-700">
@@ -338,6 +338,55 @@ export default function DailyIncomeLossPage() {
               <p className="text-2xl font-bold text-gray-700">{reportData.summary.totalDays}</p>
             </div>
           </div>
+          
+          {/* Opening and Closing Balances */}
+          {reportData.summary.openingBalance && reportData.summary.closingBalance && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-800 mb-3">رصيد الافتتاح</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">كاش:</span>
+                    <span className="font-semibold text-blue-700">{formatCurrency(parseFloat(reportData.summary.openingBalance.CASH))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">بنكك:</span>
+                    <span className="font-semibold text-blue-700">{formatCurrency(parseFloat(reportData.summary.openingBalance.BANK))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">بنك النيل:</span>
+                    <span className="font-semibold text-blue-700">{formatCurrency(parseFloat(reportData.summary.openingBalance.BANK_NILE))}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-blue-200">
+                    <span className="font-semibold text-gray-800">الإجمالي:</span>
+                    <span className="text-xl font-bold text-blue-800">{formatCurrency(parseFloat(reportData.summary.openingBalance.total))}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <h3 className="text-lg font-semibold text-purple-800 mb-3">رصيد الإقفال</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">كاش:</span>
+                    <span className="font-semibold text-purple-700">{formatCurrency(parseFloat(reportData.summary.closingBalance.CASH))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">بنكك:</span>
+                    <span className="font-semibold text-purple-700">{formatCurrency(parseFloat(reportData.summary.closingBalance.BANK))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">بنك النيل:</span>
+                    <span className="font-semibold text-purple-700">{formatCurrency(parseFloat(reportData.summary.closingBalance.BANK_NILE))}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-purple-200">
+                    <span className="font-semibold text-gray-800">الإجمالي:</span>
+                    <span className="text-xl font-bold text-purple-800">{formatCurrency(parseFloat(reportData.summary.closingBalance.total))}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
@@ -368,6 +417,54 @@ export default function DailyIncomeLossPage() {
                     صافي: {formatCurrency(Math.abs(parseFloat(day.netProfit)))}
                   </span>
                 </div>
+                
+                {/* Opening and Closing Balances */}
+                {day.openingBalance && day.closingBalance && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-200">
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <p className="text-sm font-semibold text-blue-800 mb-2">رصيد الافتتاح:</p>
+                      <div className="text-xs space-y-1 text-gray-700">
+                        <div className="flex justify-between">
+                          <span>كاش:</span>
+                          <span className="font-semibold">{formatCurrency(parseFloat(day.openingBalance.CASH))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>بنكك:</span>
+                          <span className="font-semibold">{formatCurrency(parseFloat(day.openingBalance.BANK))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>بنك النيل:</span>
+                          <span className="font-semibold">{formatCurrency(parseFloat(day.openingBalance.BANK_NILE))}</span>
+                        </div>
+                        <div className="flex justify-between pt-1 border-t border-blue-200">
+                          <span className="font-semibold">الإجمالي:</span>
+                          <span className="font-bold">{formatCurrency(parseFloat(day.openingBalance.total))}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-purple-50 p-3 rounded-lg">
+                      <p className="text-sm font-semibold text-purple-800 mb-2">رصيد الإقفال:</p>
+                      <div className="text-xs space-y-1 text-gray-700">
+                        <div className="flex justify-between">
+                          <span>كاش:</span>
+                          <span className="font-semibold">{formatCurrency(parseFloat(day.closingBalance.CASH))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>بنكك:</span>
+                          <span className="font-semibold">{formatCurrency(parseFloat(day.closingBalance.BANK))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>بنك النيل:</span>
+                          <span className="font-semibold">{formatCurrency(parseFloat(day.closingBalance.BANK_NILE))}</span>
+                        </div>
+                        <div className="flex justify-between pt-1 border-t border-purple-200">
+                          <span className="font-semibold">الإجمالي:</span>
+                          <span className="font-bold">{formatCurrency(parseFloat(day.closingBalance.total))}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Income Transactions */}
