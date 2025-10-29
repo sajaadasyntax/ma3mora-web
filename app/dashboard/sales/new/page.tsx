@@ -31,7 +31,6 @@ export default function NewSalesInvoicePage() {
     section: getUserSection(),
     customerId: '',
     pricingTier: 'RETAIL' as 'RETAIL' | 'WHOLESALE', // Default pricing tier when no customer
-    paymentMethod: 'CASH',
     discount: 0,
     notes: '',
   });
@@ -141,7 +140,6 @@ export default function NewSalesInvoicePage() {
       const submitData: any = {
         inventoryId: formData.inventoryId,
         section: formData.section,
-        paymentMethod: formData.paymentMethod,
         discount: formData.discount,
         items: invoiceItems.map((i) => ({
           itemId: i.itemId,
@@ -269,16 +267,7 @@ export default function NewSalesInvoicePage() {
               )}
             </div>
 
-            <Select
-              label="طريقة الدفع"
-              value={formData.paymentMethod}
-              onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-              options={[
-                { value: 'CASH', label: 'كاش' },
-                { value: 'BANK', label: 'بنكك' },
-                { value: 'BANK_NILE', label: 'بنك النيل' },
-              ]}
-            />
+            {/* Payment method removed from creation form; chosen later by accountant/manager */}
           </div>
 
           <Input
