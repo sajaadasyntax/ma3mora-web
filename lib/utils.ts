@@ -67,6 +67,7 @@ export const paymentStatusLabels: Record<string, string> = {
 
 export const deliveryStatusLabels: Record<string, string> = {
   NOT_DELIVERED: 'غير مُسلَّمة',
+  PARTIAL: 'تسليم جزئي',
   DELIVERED: 'مُسلَّمة',
 };
 

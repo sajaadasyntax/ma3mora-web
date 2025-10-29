@@ -147,6 +147,12 @@ export const api = {
       body: JSON.stringify({ notes }),
     }),
 
+  partialDeliverInvoice: (id: string, data: { notes?: string; items: Array<{ itemId: string; allocations: Array<{ batchId: string; quantity: number }>; giftQty?: number }> }) =>
+    fetchAPI(`/sales/invoices/${id}/partial-deliver`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // Procurement
   getProcOrders: (params?: any) =>
     fetchAPI('/procurement/orders', { params }),
