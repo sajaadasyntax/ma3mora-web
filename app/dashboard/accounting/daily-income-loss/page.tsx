@@ -97,7 +97,105 @@ export default function DailyIncomeLossPage() {
           </tbody>
         </table>
       </div>
-    `;
+      
+      ${reportData.summary.profitLossByMethod ? `
+      <div class="section">
+        <h2>صافي الربح/الخسارة حسب طريقة الدفع</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>طريقة الدفع</th>
+              <th>المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>كاش</td>
+              <td class="${parseFloat(reportData.summary.profitLossByMethod.CASH) >= 0 ? 'positive' : 'negative'}">${formatCurrency(Math.abs(parseFloat(reportData.summary.profitLossByMethod.CASH)))}</td>
+            </tr>
+            <tr>
+              <td>بنكك</td>
+              <td class="${parseFloat(reportData.summary.profitLossByMethod.BANK) >= 0 ? 'positive' : 'negative'}">${formatCurrency(Math.abs(parseFloat(reportData.summary.profitLossByMethod.BANK)))}</td>
+            </tr>
+            <tr>
+              <td>بنك النيل</td>
+              <td class="${parseFloat(reportData.summary.profitLossByMethod.BANK_NILE) >= 0 ? 'positive' : 'negative'}">${formatCurrency(Math.abs(parseFloat(reportData.summary.profitLossByMethod.BANK_NILE)))}</td>
+            </tr>
+            <tr>
+              <td><strong>الإجمالي</strong></td>
+              <td><strong class="${parseFloat(reportData.summary.profitLossByMethod.total) >= 0 ? 'positive' : 'negative'}">${formatCurrency(Math.abs(parseFloat(reportData.summary.profitLossByMethod.total)))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">(يستثني التحويلات بين الحسابات)</p>
+      </div>
+      ` : ''}
+      
+      ${reportData.summary.liquidCashByMethod ? `
+      <div class="section">
+        <h2>السيولة النقدية حسب طريقة الدفع</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>طريقة الدفع</th>
+              <th>المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>كاش</td>
+              <td class="positive">${formatCurrency(parseFloat(reportData.summary.liquidCashByMethod.CASH))}</td>
+            </tr>
+            <tr>
+              <td>بنكك</td>
+              <td class="positive">${formatCurrency(parseFloat(reportData.summary.liquidCashByMethod.BANK))}</td>
+            </tr>
+            <tr>
+              <td>بنك النيل</td>
+              <td class="positive">${formatCurrency(parseFloat(reportData.summary.liquidCashByMethod.BANK_NILE))}</td>
+            </tr>
+            <tr>
+              <td><strong>الإجمالي</strong></td>
+              <td><strong class="positive">${formatCurrency(parseFloat(reportData.summary.liquidCashByMethod.total))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="note">(يشمل التحويلات بين الحسابات)</p>
+      </div>
+      ` : ''}
+      
+      ${reportData.summary.openingBalance && reportData.summary.closingBalance ? `
+      <div class="section">
+        <h2>الأرصدة</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>البند</th>
+              <th>كاش</th>
+              <th>بنكك</th>
+              <th>بنك النيل</th>
+              <th>الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>رصيد الافتتاح</td>
+              <td>${formatCurrency(parseFloat(reportData.summary.openingBalance.CASH))}</td>
+              <td>${formatCurrency(parseFloat(reportData.summary.openingBalance.BANK))}</td>
+              <td>${formatCurrency(parseFloat(reportData.summary.openingBalance.BANK_NILE))}</td>
+              <td><strong>${formatCurrency(parseFloat(reportData.summary.openingBalance.total))}</strong></td>
+            </tr>
+            <tr>
+              <td>رصيد الإقفال</td>
+              <td>${formatCurrency(parseFloat(reportData.summary.closingBalance.CASH))}</td>
+              <td>${formatCurrency(parseFloat(reportData.summary.closingBalance.BANK))}</td>
+              <td>${formatCurrency(parseFloat(reportData.summary.closingBalance.BANK_NILE))}</td>
+              <td><strong>${formatCurrency(parseFloat(reportData.summary.closingBalance.total))}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      ` : ''}
 
     reportData.dailyReports.forEach((day: any) => {
       const dayDate = new Date(day.date).toLocaleDateString('ar-SD', {
