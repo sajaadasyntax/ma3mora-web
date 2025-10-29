@@ -285,12 +285,14 @@ export default function InventoriesPage() {
             {sectionLabels[selectedSection]}
           </h2>
           <div className="flex gap-2">
-            <a
-              href="/dashboard/inventories/transfers"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold"
-            >
-              نقل الأصناف
-            </a>
+            {user?.role !== 'PROCUREMENT' && (
+              <a
+                href="/dashboard/inventories/transfers"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold"
+              >
+                نقل الأصناف
+              </a>
+            )}
             <a
               href="/dashboard/inventories/stock-movements"
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded font-semibold"

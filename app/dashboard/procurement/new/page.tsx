@@ -28,6 +28,7 @@ export default function NewProcOrderPage() {
   const [currentItem, setCurrentItem] = useState({
     itemId: '',
     quantity: 1,
+    giftQty: 0,
     unitCost: '',
   });
 
@@ -103,7 +104,7 @@ export default function NewProcOrderPage() {
       ]);
     }
     
-    setCurrentItem({ itemId: '', quantity: 1, unitCost: '' });
+    setCurrentItem({ itemId: '', quantity: 1, giftQty: 0, unitCost: '' });
   };
 
   const removeItem = (index: number) => {
@@ -138,6 +139,7 @@ export default function NewProcOrderPage() {
         items: orderItems.map((item) => ({
           itemId: item.itemId,
           quantity: parseFloat(item.quantity),
+          giftQty: parseFloat(item.giftQty || 0),
           unitCost: parseFloat(item.unitCost),
         })),
         notes: formData.notes,
@@ -240,6 +242,18 @@ export default function NewProcOrderPage() {
 
                 <div className="md:col-span-3">
                   <Input
+                    label="كمية الهدايا"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={currentItem.giftQty}
+                    onChange={(e) => setCurrentItem({ ...currentItem, giftQty: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="md:col-span-3">
+                  <Input
                     label="سعر الوحدة"
                     type="number"
                     step="0.01"
@@ -271,6 +285,9 @@ export default function NewProcOrderPage() {
                           <p className="font-medium">{item.item.name}</p>
                           <p className="text-sm text-gray-600">
                             الكمية: {item.quantity} × {formatCurrency(item.unitCost)}
+                            {item.giftQty && item.giftQty > 0 && (
+                              <span className="text-green-600 ml-2">+ هدية: {item.giftQty}</span>
+                            )}
                           </p>
                         </div>
                         <div className="flex items-center gap-4">

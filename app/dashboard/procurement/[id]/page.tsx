@@ -912,77 +912,7 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
           </Card>
         )}
 
-        {/* Add Gifts */}
-        {user?.role === 'MANAGER' && !order.paymentConfirmed && order.status !== 'RECEIVED' && order.status !== 'CANCELLED' && (
-          <Card>
-            <div className="flex justify-between items-center mb-4">
-              <div>
-                <h3 className="text-xl font-semibold">إضافة هدايا</h3>
-                <p className="text-gray-600 text-sm mt-1">
-                  يمكنك إضافة كميات هدايا للأصناف قبل تأكيد الدفع
-                </p>
-              </div>
-              {!showGiftsForm && (
-                <Button onClick={initializeGiftsForm}>
-                  إضافة/تعديل الهدايا
-                </Button>
-              )}
-            </div>
-
-            {showGiftsForm && (
-              <form onSubmit={handleAddGifts} className="space-y-4">
-                <div className="space-y-3 border rounded-lg p-4 bg-gray-50">
-                  {giftsForm.map((gift, idx) => {
-                    const orderItem = order.items.find((item: any) => item.itemId === gift.itemId);
-                    return (
-                      <div key={gift.itemId} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-                        <div className="font-semibold">
-                          {orderItem?.item?.name || gift.itemId}
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            كمية الهدية
-                          </label>
-                          <Input
-                            type="number"
-                            value={gift.giftQty}
-                            onChange={(e) => {
-                              const newGifts = [...giftsForm];
-                              newGifts[idx].giftQty = parseFloat(e.target.value) || 0;
-                              setGiftsForm(newGifts);
-                            }}
-                            min="0"
-                            placeholder="0"
-                          />
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          الكمية الأساسية: {formatNumber(parseFloat(orderItem?.quantity.toString() || '0'))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={addingGifts}>
-                    {addingGifts ? 'جاري الحفظ...' : 'حفظ الهدايا'}
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="secondary" 
-                    onClick={() => {
-                      setShowGiftsForm(false);
-                      setGiftsForm([]);
-                    }}
-                    disabled={addingGifts}
-                  >
-                    إلغاء
-                  </Button>
-                </div>
-              </form>
-            )}
-          </Card>
-        )}
+        {/* Add Gifts - removed: gifts are specified at order creation */}
 
         {user?.role === 'INVENTORY' &&
           order.status !== 'RECEIVED' &&
