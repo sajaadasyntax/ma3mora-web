@@ -315,8 +315,8 @@ export default function SalesReportsPage() {
                         <div>
                           <div className="font-medium">{invoice.invoiceNumber}</div>
                           <div className="text-sm text-gray-600">
-                            العميل: {invoice.customer.name} | 
-                            المخزن: {invoice.inventory.name} |
+                            العميل: {invoice.customer?.name || 'بدون عميل'} | 
+                            المخزن: {invoice.inventory?.name || 'غير محدد'} |
                             طريقة الدفع: {paymentMethodLabels[invoice.paymentMethod]}
                           </div>
                         </div>

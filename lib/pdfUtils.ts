@@ -1186,7 +1186,7 @@ export function generateSalesReportPDF(reportData: any, filters: any) {
               <tr>
                 <td>${invoice.invoiceNumber}</td>
                 <td>${invoice.customer?.name || 'بدون عميل'}</td>
-                <td>${invoice.inventory.name}</td>
+                <td>${invoice.inventory?.name || 'غير محدد'}</td>
                 <td>${invoice.paymentMethod === 'CASH' ? 'كاش' : invoice.paymentMethod === 'BANK' ? 'بنكك' : 'بنك النيل'}</td>
                 <td>${formatCurrency(invoice.total)}</td>
                 <td>${formatDate(invoice.createdAt)}</td>
