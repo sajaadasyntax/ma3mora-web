@@ -17,6 +17,7 @@ export default function InventoryTransfersPage() {
   const [items, setItems] = useState<any[]>([]);
   const [sourceStocks, setSourceStocks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingStocks, setLoadingStocks] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
@@ -85,11 +86,17 @@ export default function InventoryTransfersPage() {
   }, [form.fromInventoryId, selectedSection]);
 
   const loadSourceStocks = async () => {
+    if (!form.fromInventoryId || !selectedSection) return;
+    
     try {
+      setLoadingStocks(true);
       const data = await api.getInventoryStocks(form.fromInventoryId, { section: selectedSection });
       setSourceStocks(data);
     } catch (error) {
       console.error('Error loading source stocks:', error);
+      setSourceStocks([]);
+    } finally {
+      setLoadingStocks(false);
     }
   };
 
@@ -97,15 +104,32 @@ export default function InventoryTransfersPage() {
     e.preventDefault();
     if (submitting) return;
     
-    // Validate form data before submission
-    if (!form.fromInventoryId || !form.toInventoryId || !form.itemId) {
-      alert('يرجى ملء جميع الحقول المطلوبة');
+    // Validate form data before submission with better error messages
+    if (!form.fromInventoryId) {
+      alert('يرجى اختيار المخزن المصدر');
       return;
     }
+    
+    if (!form.toInventoryId) {
+      alert('يرجى اختيار المخزن الهدف');
+      return;
+    }
+    
     if (form.fromInventoryId === form.toInventoryId) {
       alert('لا يمكن نقل الأصناف من مخزن إلى نفسه');
       return;
     }
+    
+    if (!form.itemId) {
+      alert('يرجى اختيار الصنف');
+      return;
+    }
+    
+    if (sourceStocks.length === 0) {
+      alert('جارٍ تحميل بيانات المخزون، يرجى الانتظار قليلاً');
+      return;
+    }
+    
     const sourceHasItem = sourceStocks.some((s) => s.itemId === form.itemId);
     if (!sourceHasItem) {
       alert('الصنف المحدد غير متاح في المخزن المصدر');
@@ -264,13 +288,17 @@ export default function InventoryTransfersPage() {
                 label="الصنف"
                 value={form.itemId}
                 onChange={(e) => handleItemChange(e.target.value)}
-                options={sourceStocks
-                  .filter((s) => parseFloat(s.quantity) > 0)
-                  .map((stock) => ({
-                    value: stock.itemId,
-                    label: `${stock.item.name} (متاح: ${formatNumber(stock.quantity)})`,
-                  }))}
+                options={[
+                  { value: '', label: loadingStocks ? 'جارٍ التحميل...' : sourceStocks.length === 0 ? 'لا توجد أصناف متاحة' : 'اختر الصنف' },
+                  ...sourceStocks
+                    .filter((s) => parseFloat(s.quantity.toString()) > 0)
+                    .map((stock) => ({
+                      value: stock.itemId,
+                      label: `${stock.item.name} (متاح: ${formatNumber(stock.quantity)})`,
+                    })),
+                ]}
                 required
+                disabled={sourceStocks.length === 0 || loadingStocks || !form.fromInventoryId}
               />
 
               <Input
