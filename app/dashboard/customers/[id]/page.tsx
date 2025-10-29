@@ -48,18 +48,28 @@ export default function CustomerDetailPage({ params }: PageProps) {
   // Calculate outstanding balance (accounts receivable)
   const calculateOutstanding = () => {
     if (!customer.salesInvoices || customer.salesInvoices.length === 0) {
-      return 0;
+      return { accountsReceivable: 0, openingBalance: 0, netOutstanding: 0 };
     }
     
-    return customer.salesInvoices.reduce((total: number, invoice: any) => {
+    const accountsReceivable = customer.salesInvoices.reduce((total: number, invoice: any) => {
       const invoiceTotal = parseFloat(invoice.total);
       const paidAmount = parseFloat(invoice.paidAmount);
       const remaining = invoiceTotal - paidAmount;
       return total + remaining;
     }, 0);
+    
+    // Opening balance: positive = we owe customer, negative = customer owes us
+    const openingBalance = customer.openingBalance?.reduce((total: number, ob: any) => {
+      return total + parseFloat(ob.amount);
+    }, 0) || 0;
+    
+    // Net outstanding: positive = customer owes us, negative = we owe customer
+    const netOutstanding = accountsReceivable + openingBalance;
+    
+    return { accountsReceivable, openingBalance, netOutstanding };
   };
 
-  const outstandingBalance = calculateOutstanding();
+  const outstanding = calculateOutstanding();
 
   // Calculate total sales
   const totalSales = customer.salesInvoices?.reduce((total: number, invoice: any) => {
@@ -168,7 +178,7 @@ export default function CustomerDetailPage({ params }: PageProps) {
         {/* Financial Summary - Accounts Receivable */}
         <Card>
           <h3 className="text-xl font-semibold mb-4">الملخص المالي</h3>
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-6 mb-4">
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-sm text-gray-600 mb-1">إجمالي المبيعات</p>
               <p className="text-2xl font-bold text-blue-700">{formatCurrency(totalSales)}</p>
@@ -178,17 +188,56 @@ export default function CustomerDetailPage({ params }: PageProps) {
               <p className="text-2xl font-bold text-green-700">{formatCurrency(totalPaid)}</p>
             </div>
             <div className={`p-4 rounded-lg border ${
-              outstandingBalance > 0 
+              outstanding.accountsReceivable > 0 
                 ? 'bg-red-50 border-red-200' 
                 : 'bg-gray-50 border-gray-200'
             }`}>
-              <p className="text-sm text-gray-600 mb-1">الذمم المدينة (المتبقي)</p>
+              <p className="text-sm text-gray-600 mb-1">الذمم المدينة (من الفواتير)</p>
               <p className={`text-2xl font-bold ${
-                outstandingBalance > 0 ? 'text-red-700' : 'text-gray-700'
+                outstanding.accountsReceivable > 0 ? 'text-red-700' : 'text-gray-700'
               }`}>
-                {formatCurrency(outstandingBalance)}
+                {formatCurrency(outstanding.accountsReceivable)}
               </p>
             </div>
+          </div>
+          
+          {/* Opening Balance Info */}
+          {outstanding.openingBalance !== 0 && (
+            <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <p className="text-sm text-gray-600 mb-1">
+                {outstanding.openingBalance > 0 
+                  ? 'رصيد افتتاحي (نحن مدينون للعميل)' 
+                  : 'رصيد افتتاحي (العميل مدين لنا)'}
+              </p>
+              <p className={`text-xl font-bold ${
+                outstanding.openingBalance > 0 ? 'text-orange-700' : 'text-purple-700'
+              }`}>
+                {outstanding.openingBalance > 0 ? '+' : ''}{formatCurrency(outstanding.openingBalance)}
+              </p>
+            </div>
+          )}
+          
+          {/* Net Outstanding */}
+          <div className={`mt-4 p-4 rounded-lg border ${
+            outstanding.netOutstanding > 0 
+              ? 'bg-red-50 border-red-300' 
+              : outstanding.netOutstanding < 0
+              ? 'bg-orange-50 border-orange-300'
+              : 'bg-gray-50 border-gray-200'
+          }`}>
+            <p className="text-sm font-semibold text-gray-700 mb-1">
+              {outstanding.netOutstanding > 0 
+                ? '✅ المتبقي الإجمالي: العميل مدين لنا' 
+                : outstanding.netOutstanding < 0
+                ? '⚠️ المتبقي الإجمالي: نحن مدينون للعميل'
+                : '✓ المتبقي الإجمالي: متساوي'}
+            </p>
+            <p className={`text-2xl font-bold ${
+              outstanding.netOutstanding > 0 ? 'text-red-700' : 
+              outstanding.netOutstanding < 0 ? 'text-orange-700' : 'text-gray-700'
+            }`}>
+              {formatCurrency(Math.abs(outstanding.netOutstanding))}
+            </p>
           </div>
         </Card>
 

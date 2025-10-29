@@ -336,6 +336,14 @@ export const api = {
   getProcurementReports: (params?: any) =>
     fetchAPI('/procurement/reports', { params }),
 
+  // Outstanding Fees
+  getOutstandingFees: (params?: { section?: string; period?: string }) =>
+    fetchAPI('/accounting/outstanding-fees', { params }),
+
+  // Bank Transactions
+  getBankTransactions: (params?: { startDate?: string; endDate?: string; method?: string }) =>
+    fetchAPI('/accounting/bank-transactions', { params }),
+
   // Expiry Management
   getExpiryAlerts: (days?: number) =>
     fetchAPI('/inventories/expiry-alerts', { params: days ? { days: days.toString() } : undefined }),

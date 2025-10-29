@@ -211,6 +211,12 @@ export default function AccountingPage() {
             >
               المنصرفات
             </a>
+            <a
+              href="/dashboard/accounting/bank-transactions"
+              className="block px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white rounded text-center font-semibold"
+            >
+              🏦 المعاملات البنكية
+            </a>
           </div>
         </Card>
 
