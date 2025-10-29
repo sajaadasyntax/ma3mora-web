@@ -197,7 +197,7 @@ export default function ItemsPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">الأصناف والأسعار</h1>
-        {user?.role === 'PROCUREMENT' && (
+        {(user?.role === 'PROCUREMENT' || user?.role === 'MANAGER') && (
           <Button onClick={() => setShowForm(!showForm)}>
             {showForm ? 'إلغاء' : 'إضافة صنف جديد'}
           </Button>
