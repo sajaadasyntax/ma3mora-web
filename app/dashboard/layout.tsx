@@ -110,6 +110,7 @@ export default function DashboardLayout({
     { name: 'المخازن', href: '/dashboard/inventories', roles: ['*'] },
     { name: 'العملاء', href: '/dashboard/customers', roles: ['SALES_GROCERY', 'SALES_BAKERY', 'ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
     { name: 'فواتير المبيعات', href: '/dashboard/sales', roles: ['SALES_GROCERY', 'SALES_BAKERY', 'INVENTORY', 'ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
+    { name: 'تقارير المبيعات', href: '/dashboard/sales-reports', roles: ['ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
     { name: 'الموردون', href: '/dashboard/suppliers', roles: ['PROCUREMENT', 'ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
     { name: 'أوامر الشراء', href: '/dashboard/procurement', roles: ['PROCUREMENT', 'INVENTORY', 'ACCOUNTANT', 'AUDITOR', 'MANAGER'] },
     { name: 'الأصناف والأسعار', href: '/dashboard/items', roles: ['ACCOUNTANT', 'PROCUREMENT', 'AUDITOR', 'MANAGER'] },
