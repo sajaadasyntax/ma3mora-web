@@ -44,7 +44,7 @@ export default function ReceivablesPayablesPage() {
   ];
 
   return (
-    <div>
+    <>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold text-gray-900">تقرير له و عليه</h1>
         <div className="flex items-center gap-3">
@@ -64,6 +64,7 @@ export default function ReceivablesPayablesPage() {
       {loading ? (
         <div className="text-center py-8">جاري التحميل...</div>
       ) : (
+        <>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card title={`العملاء (له) — الإجمالي: ${formatCurrency(parseFloat(data?.totals?.receivables || '0'))}`}>
             {data?.receivables?.length ? (
@@ -124,8 +125,9 @@ export default function ReceivablesPayablesPage() {
             </div>
           </Card>
         </div>
+        </>
       )}
-    </div>
+    </>
   );
 }
 
