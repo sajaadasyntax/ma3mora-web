@@ -33,14 +33,14 @@ export default function ReceivablesPayablesPage() {
     { key: 'name', label: 'العميل' },
     { key: 'total', label: 'الإجمالي', render: (v: any) => formatCurrency(parseFloat(v)) },
     { key: 'paid', label: 'المدفوع', render: (v: any) => formatCurrency(parseFloat(v)) },
-    { key: 'remaining', label: 'المتبقي', render: (v: any) => <span className="text-red-600 font-semibold">{formatCurrency(parseFloat(v))}</span> },
+    { key: 'remaining', label: 'المتبقي', render: (v: any) => (<span className="text-red-600 font-semibold">{formatCurrency(parseFloat(v))}</span>) },
   ];
 
   const payableCols = [
     { key: 'name', label: 'المورد' },
     { key: 'total', label: 'الإجمالي', render: (v: any) => formatCurrency(parseFloat(v)) },
     { key: 'paid', label: 'المدفوع', render: (v: any) => formatCurrency(parseFloat(v)) },
-    { key: 'remaining', label: 'المتبقي', render: (v: any) => <span className="text-blue-700 font-semibold">{formatCurrency(parseFloat(v))}</span> },
+    { key: 'remaining', label: 'المتبقي', render: (v: any) => (<span className="text-blue-700 font-semibold">{formatCurrency(parseFloat(v))}</span>) },
   ];
 
   return (
