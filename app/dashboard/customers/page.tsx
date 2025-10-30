@@ -103,7 +103,12 @@ export default function CustomersPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">العملاء</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold text-gray-900">العملاء</h1>
+          <Button variant="secondary" onClick={() => router.push('/dashboard/customers/reports')}>
+            تقرير العملاء
+          </Button>
+        </div>
         {(user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY') && (
           <Button onClick={() => setShowForm(!showForm)}>
             {showForm ? 'إلغاء' : 'إضافة عميل جديد'}

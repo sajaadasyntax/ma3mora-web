@@ -345,6 +345,14 @@ export const api = {
   getOutstandingFees: (params?: { section?: string; period?: string }) =>
     fetchAPI('/accounting/outstanding-fees', { params }),
 
+  // Customer Report
+  getCustomerReport: (params?: { startDate?: string; endDate?: string; type?: string; customerId?: string; paymentMethod?: string }) =>
+    fetchAPI('/accounting/customer-report', { params }),
+
+  // Supplier Report
+  getSupplierReport: (params?: { startDate?: string; endDate?: string; supplierId?: string; paymentMethod?: string }) =>
+    fetchAPI('/accounting/supplier-report', { params }),
+
   // Bank Transactions
   getBankTransactions: (params?: { startDate?: string; endDate?: string; method?: string }) =>
     fetchAPI('/accounting/bank-transactions', { params }),

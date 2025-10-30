@@ -61,7 +61,12 @@ export default function SuppliersPage() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">الموردون</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold text-gray-900">الموردون</h1>
+          <Button variant="secondary" onClick={() => router.push('/dashboard/suppliers/reports')}>
+            تقرير الموردين
+          </Button>
+        </div>
         {user?.role === 'PROCUREMENT' && (
           <Button onClick={() => setShowForm(!showForm)}>
             {showForm ? 'إلغاء' : 'إضافة مورد جديد'}
