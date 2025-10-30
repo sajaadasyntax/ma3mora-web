@@ -333,6 +333,31 @@ export default function LiquidCashPage() {
               )}
             </div>
           </div>
+        
+          {/* Summary: salaries and advances included in costs */}
+          <div className="mt-6 bg-gray-50 p-4 rounded-lg border">
+            <h4 className="text-lg font-semibold text-gray-800 mb-3">ملخص التكاليف الأخرى</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700">المرتبات</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(liquidData?.salaries?.total || '0'))}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700">السلفيات</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(liquidData?.advances?.total || '0'))}</span>
+              </div>
+              <div className="border-t pt-2 mt-2 flex items-center justify-between">
+                <span className="text-gray-900 font-semibold">إجمالي المنصرفات (تشغيلي + مرتبات + سلفيات)</span>
+                <span className="text-gray-900 font-bold">
+                  {formatCurrency(
+                    (parseFloat(liquidData?.expenses?.total || '0') || 0) +
+                    (parseFloat(liquidData?.salaries?.total || '0') || 0) +
+                    (parseFloat(liquidData?.advances?.total || '0') || 0)
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
         </Card>
       </div>
 

@@ -73,12 +73,55 @@ export default function ReceivablesPayablesPage() {
             )}
           </Card>
 
-          <Card title={`الموردون (عليه) — الإجمالي: ${formatCurrency(parseFloat(data?.totals?.payables || '0'))}`}>
+          <Card title={`الموردون (عليه) — الإجمالي: ${formatCurrency(parseFloat(data?.totals?.payablesWithExpenses || data?.totals?.payables || '0'))}`}>
             {data?.payables?.length ? (
               <Table columns={payableCols} data={data.payables} />
             ) : (
               <div className="text-center text-gray-500 py-8">لا توجد ذمم دائنة</div>
             )}
+          </Card>
+        </div>
+
+        {/* Expenses breakdown contributing to (عليه) */}
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">تفاصيل المنصرفات المضافة إلى (عليه)</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700">المنصرفات التشغيلية</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(data?.expenses?.regular || '0'))}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700">المرتبات</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(data?.expenses?.salaries || '0'))}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700">السلفيات</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(data?.expenses?.advances || '0'))}</span>
+              </div>
+              <div className="border-t pt-2 mt-2 flex items-center justify-between">
+                <span className="text-gray-900 font-semibold">إجمالي المنصرفات</span>
+                <span className="text-gray-900 font-bold">{formatCurrency(parseFloat(data?.expenses?.total || '0'))}</span>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">ملخص الإجماليات</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700">إجمالي العملاء (له)</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(data?.totals?.receivables || '0'))}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700">إجمالي الموردين (عليه) بدون منصرفات</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(data?.totals?.payables || '0'))}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-900 font-semibold">إجمالي (عليه) شامل المنصرفات</span>
+                <span className="text-gray-900 font-bold">{formatCurrency(parseFloat(data?.totals?.payablesWithExpenses || data?.totals?.payables || '0'))}</span>
+              </div>
+            </div>
           </Card>
         </div>
       )}
