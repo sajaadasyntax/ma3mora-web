@@ -10,6 +10,7 @@ import Input from '@/components/Input';
 import Select from '@/components/Select';
 import { formatCurrency, formatDateTime, formatNumber, sectionLabels } from '@/lib/utils';
 import { generatePDF } from '@/lib/pdfUtils';
+import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
 export default function DailySalesByItemPage() {
   const { user } = useUser();
@@ -46,6 +47,13 @@ export default function DailySalesByItemPage() {
       const params: any = { date: filters.date };
       if (filters.inventoryId) params.inventoryId = filters.inventoryId;
       if (filters.section) params.section = filters.section;
+      
+      // Ensure aggregators are updated before loading report
+      await ensureAggregatorsUpdated(filters.date, filters.date, {
+        inventoryId: filters.inventoryId || undefined,
+        section: filters.section || undefined,
+        silent: true,
+      });
       
       const data = await api.getDailySalesByItem(params);
       setReportData(data);

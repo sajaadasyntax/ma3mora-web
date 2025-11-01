@@ -9,6 +9,8 @@ import Input from '@/components/Input';
 import Select from '@/components/Select';
 import Table from '@/components/Table';
 import { formatCurrency } from '@/lib/utils';
+import StockInfoTable from '@/components/StockInfoTable';
+import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
 export default function CustomerReportPage() {
   const router = useRouter();
@@ -21,6 +23,7 @@ export default function CustomerReportPage() {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<any[]>([]);
   const [summary, setSummary] = useState<any | null>(null);
+  const [stockInfo, setStockInfo] = useState<any | null>(null);
 
   useEffect(() => {
     loadCustomers();
@@ -52,9 +55,13 @@ export default function CustomerReportPage() {
       if (customerId) params.customerId = customerId;
       if (paymentMethod) params.paymentMethod = paymentMethod;
 
+      // Ensure aggregators are updated before loading report
+      await ensureAggregatorsUpdated(startDate, endDate, { silent: true });
+      
       const data = await api.getCustomerReport(params);
       setReport(data?.data || []);
       setSummary(data?.summary || null);
+      setStockInfo(data?.stockInfo || null);
     } catch (error: any) {
       console.error('Error fetching customer report:', error);
       alert(error?.error || error?.message || 'فشل تحميل التقرير');
@@ -224,6 +231,9 @@ export default function CustomerReportPage() {
           </div>
         </div>
       </Card>
+
+      {/* Stock Information Summary */}
+      {stockInfo && <StockInfoTable stockInfo={stockInfo} />}
 
       {summary && (
         <Card className="mb-6">

@@ -9,6 +9,8 @@ import Select from '@/components/Select';
 import Input from '@/components/Input';
 import { formatCurrency, formatDateTime, procOrderStatusLabels, sectionLabels } from '@/lib/utils';
 import { printProcurementReport } from '@/lib/pdfUtils';
+import StockInfoTable from '@/components/StockInfoTable';
+import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
 export default function ProcurementReportsPage() {
   const { user } = useUser();
@@ -31,6 +33,9 @@ export default function ProcurementReportsPage() {
     setLoading(true);
     try {
       const params: any = {};
+      let dateStart: string | null = null;
+      let dateEnd: string | null = null;
+      
       if (filters.period === 'monthly') {
         // Expect startDate as YYYY-MM when monthly; compute endDate as month end
         if (filters.startDate) {
@@ -40,16 +45,31 @@ export default function ProcurementReportsPage() {
           const endISO = end.toISOString().split('T')[0];
           params.startDate = startISO;
           params.endDate = endISO;
+          dateStart = startISO;
+          dateEnd = endISO;
         }
         params.period = 'monthly';
       } else {
-        if (filters.startDate) params.startDate = filters.startDate;
-        if (filters.endDate) params.endDate = filters.endDate;
+        if (filters.startDate) {
+          params.startDate = filters.startDate;
+          dateStart = filters.startDate;
+        }
+        if (filters.endDate) {
+          params.endDate = filters.endDate;
+          dateEnd = filters.endDate;
+        }
         if (filters.period) params.period = filters.period;
       }
       if (filters.inventoryId) params.inventoryId = filters.inventoryId;
       if (filters.section) params.section = filters.section;
       if (filters.status) params.status = filters.status;
+
+      // Ensure aggregators are updated before loading report
+      await ensureAggregatorsUpdated(dateStart, dateEnd, {
+        inventoryId: filters.inventoryId || undefined,
+        section: filters.section || undefined,
+        silent: true,
+      });
 
       const data = await api.getProcurementReports(params);
       setReportData(data);
@@ -187,6 +207,9 @@ export default function ProcurementReportsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Stock Information Summary */}
+      {reportData?.stockInfo && <StockInfoTable stockInfo={reportData.stockInfo} />}
 
       {/* Summary */}
       {reportData?.summary && (

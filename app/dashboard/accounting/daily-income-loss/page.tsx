@@ -7,6 +7,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { formatCurrency, formatDateTime, paymentMethodLabels } from '@/lib/utils';
 import { generatePDF } from '@/lib/pdfUtils';
+import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
 export default function DailyIncomeLossPage() {
   const [loading, setLoading] = useState(true);
@@ -27,15 +28,25 @@ export default function DailyIncomeLossPage() {
     try {
       setLoading(true);
       const params: any = {};
+      let dateStart: string | null = null;
+      let dateEnd: string | null = null;
+      
       if (filters.mode === 'single' && filters.date) {
         params.date = filters.date;
+        dateStart = filters.date;
+        dateEnd = filters.date;
       } else if (filters.mode === 'range' && filters.startDate && filters.endDate) {
         params.startDate = filters.startDate;
         params.endDate = filters.endDate;
+        dateStart = filters.startDate;
+        dateEnd = filters.endDate;
       }
       if (filters.method) {
         params.method = filters.method;
       }
+      
+      // Ensure aggregators are updated before loading report
+      await ensureAggregatorsUpdated(dateStart, dateEnd, { silent: true });
       
       const data = await api.getDailyIncomeLoss(params);
       setReportData(data);

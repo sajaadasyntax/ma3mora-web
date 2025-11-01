@@ -6,6 +6,7 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import { formatCurrency, formatDateTime, sectionLabels } from '@/lib/utils';
+import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
 export default function CommissionReportPage() {
   const [loading, setLoading] = useState(true);
@@ -31,6 +32,14 @@ export default function CommissionReportPage() {
       if (filters.supplierId) params.supplierId = filters.supplierId;
       if (filters.inventoryId) params.inventoryId = filters.inventoryId;
       if (filters.section) params.section = filters.section;
+      
+      // Ensure aggregators are updated before loading report
+      await ensureAggregatorsUpdated(filters.startDate, filters.endDate, {
+        inventoryId: filters.inventoryId || undefined,
+        section: filters.section || undefined,
+        silent: true,
+      });
+      
       const res = await api.getCommissionReport(params);
       setData(res);
     } catch (e: any) {

@@ -365,6 +365,13 @@ export const api = {
   getCommissionReport: (params?: { startDate?: string; endDate?: string; supplierId?: string; inventoryId?: string; section?: string }) =>
     fetchAPI('/accounting/commissions', { params }),
 
+  // Aggregators
+  recalculateAggregators: (data: { startDate: string; endDate: string; inventoryId?: string; section?: string }) =>
+    fetchAPI('/accounting/aggregators/recalculate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // Expiry Management
   getExpiryAlerts: (days?: number) =>
     fetchAPI('/inventories/expiry-alerts', { params: days ? { days: days.toString() } : undefined }),

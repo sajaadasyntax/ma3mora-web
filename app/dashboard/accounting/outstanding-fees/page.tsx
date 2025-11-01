@@ -9,6 +9,7 @@ import Button from '@/components/Button';
 import Select from '@/components/Select';
 import { formatCurrency, sectionLabels, customerTypeLabels } from '@/lib/utils';
 import { generatePDF } from '@/lib/pdfUtils';
+import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
 export default function OutstandingFeesPage() {
   const { user } = useUser();
@@ -33,6 +34,37 @@ export default function OutstandingFeesPage() {
       if (filters.period !== 'ALL') {
         params.period = filters.period;
       }
+      
+      // Calculate date range based on period for aggregator update
+      let dateStart: string | null = null;
+      let dateEnd: string | null = null;
+      if (filters.period !== 'ALL') {
+        const endDate = new Date();
+        endDate.setHours(23, 59, 59, 999);
+        dateEnd = endDate.toISOString().split('T')[0];
+        
+        const startDate = new Date();
+        if (filters.period === 'today') {
+          startDate.setHours(0, 0, 0, 0);
+        } else if (filters.period === 'week') {
+          startDate.setDate(startDate.getDate() - 7);
+          startDate.setHours(0, 0, 0, 0);
+        } else if (filters.period === 'month') {
+          startDate.setMonth(startDate.getMonth() - 1);
+          startDate.setHours(0, 0, 0, 0);
+        } else if (filters.period === 'year') {
+          startDate.setFullYear(startDate.getFullYear() - 1);
+          startDate.setHours(0, 0, 0, 0);
+        }
+        dateStart = startDate.toISOString().split('T')[0];
+      }
+      
+      // Ensure aggregators are updated before loading report
+      await ensureAggregatorsUpdated(dateStart, dateEnd, {
+        section: filters.section !== 'ALL' ? filters.section : undefined,
+        silent: true,
+      });
+      
       const result = await api.getOutstandingFees(params);
       setData(result);
     } catch (error) {

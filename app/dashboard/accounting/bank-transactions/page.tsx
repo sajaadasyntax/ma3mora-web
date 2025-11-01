@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
 import { formatCurrency, formatDateTime, paymentMethodLabels } from '@/lib/utils';
+import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
 export default function BankTransactionsPage() {
   const router = useRouter();
@@ -31,6 +32,9 @@ export default function BankTransactionsPage() {
       if (filters.startDate) params.startDate = filters.startDate;
       if (filters.endDate) params.endDate = filters.endDate;
       if (filters.method) params.method = filters.method;
+
+      // Ensure aggregators are updated before loading report
+      await ensureAggregatorsUpdated(filters.startDate, filters.endDate, { silent: true });
 
       const data = await api.getBankTransactions(params);
       setTransactions(data.transactions);
