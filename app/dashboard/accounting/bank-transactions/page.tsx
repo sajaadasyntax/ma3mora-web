@@ -188,27 +188,187 @@ export default function BankTransactionsPage() {
         </Button>
       </div>
 
-      {/* Summary Cards */}
-      {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      {/* Summary Cards - Net Balances */}
+      {summary && summary.net && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <h3 className="text-sm font-semibold mb-1">إجمالي بنكك</h3>
-            <p className="text-2xl font-bold">{formatCurrency(parseFloat(summary.BANK))}</p>
+            <h3 className="text-sm font-semibold mb-1">صافي بنكك</h3>
+            <p className="text-2xl font-bold">{formatCurrency(parseFloat(summary.net.BANK))}</p>
+            <p className="text-sm opacity-90 mt-1">صافي الرصيد المتاح</p>
           </Card>
 
           <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <h3 className="text-sm font-semibold mb-1">إجمالي بنك النيل</h3>
-            <p className="text-2xl font-bold">{formatCurrency(parseFloat(summary.BANK_NILE))}</p>
+            <h3 className="text-sm font-semibold mb-1">صافي بنك النيل</h3>
+            <p className="text-2xl font-bold">{formatCurrency(parseFloat(summary.net.BANK_NILE))}</p>
+            <p className="text-sm opacity-90 mt-1">صافي الرصيد المتاح</p>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <h3 className="text-sm font-semibold mb-1">الإجمالي</h3>
-            <p className="text-2xl font-bold">{formatCurrency(parseFloat(summary.total))}</p>
+            <h3 className="text-sm font-semibold mb-1">إجمالي الصافي</h3>
+            <p className="text-2xl font-bold">{formatCurrency(parseFloat(summary.net.total))}</p>
+            <p className="text-sm opacity-90 mt-1">إجمالي السيولة البنكية</p>
+          </Card>
+        </div>
+      )}
+
+      {/* Detailed Breakdown */}
+      {summary && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Income Section */}
+          <Card>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">
+              الإيرادات (المبيعات)
+            </h2>
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-blue-800 mb-2">بنكك</h3>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">إجمالي الإيرادات:</span>
+                  <span className="text-xl font-bold text-blue-600">
+                    {formatCurrency(parseFloat(summary.income?.BANK || '0'))}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-purple-800 mb-2">بنك النيل</h3>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-700">إجمالي الإيرادات:</span>
+                  <span className="text-xl font-bold text-purple-600">
+                    {formatCurrency(parseFloat(summary.income?.BANK_NILE || '0'))}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-300">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold text-gray-800">إجمالي الإيرادات:</span>
+                  <span className="text-2xl font-bold text-gray-800">
+                    {formatCurrency(parseFloat(summary.income?.total || '0'))}
+                  </span>
+                </div>
+              </div>
+            </div>
           </Card>
 
-          <Card className="bg-gradient-to-br from-gray-500 to-gray-600 text-white">
-            <h3 className="text-sm font-semibold mb-1">عدد المعاملات</h3>
-            <p className="text-2xl font-bold">{summary.count}</p>
+          {/* Expenses Section */}
+          <Card>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">
+              المنصرفات
+            </h2>
+            <div className="space-y-4">
+              <div className="bg-red-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-red-800 mb-2">بنكك</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">منصرفات تشغيلية:</span>
+                    <span className="font-semibold">{formatCurrency(parseFloat(summary.expenses?.BANK?.regular || '0'))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">المرتبات:</span>
+                    <span className="font-semibold">{formatCurrency(parseFloat(summary.expenses?.BANK?.salaries || '0'))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">السلفيات:</span>
+                    <span className="font-semibold">{formatCurrency(parseFloat(summary.expenses?.BANK?.advances || '0'))}</span>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between">
+                    <span className="font-semibold text-gray-800">الإجمالي:</span>
+                    <span className="text-xl font-bold text-red-600">{formatCurrency(parseFloat(summary.expenses?.BANK?.total || '0'))}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-orange-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-orange-800 mb-2">بنك النيل</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">منصرفات تشغيلية:</span>
+                    <span className="font-semibold">{formatCurrency(parseFloat(summary.expenses?.BANK_NILE?.regular || '0'))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">المرتبات:</span>
+                    <span className="font-semibold">{formatCurrency(parseFloat(summary.expenses?.BANK_NILE?.salaries || '0'))}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700">السلفيات:</span>
+                    <span className="font-semibold">{formatCurrency(parseFloat(summary.expenses?.BANK_NILE?.advances || '0'))}</span>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between">
+                    <span className="font-semibold text-gray-800">الإجمالي:</span>
+                    <span className="text-xl font-bold text-orange-600">{formatCurrency(parseFloat(summary.expenses?.BANK_NILE?.total || '0'))}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg border-2 border-gray-300">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold text-gray-800">إجمالي المنصرفات:</span>
+                  <span className="text-2xl font-bold text-gray-800">
+                    {formatCurrency(parseFloat(summary.expenses?.total || '0'))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Opening Balance & Other Details */}
+      {summary && summary.opening && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <Card>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">رصيد افتتاحي</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-700">بنكك:</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(summary.opening.BANK))}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">بنك النيل:</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(summary.opening.BANK_NILE))}</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between">
+                <span className="font-semibold text-gray-800">الإجمالي:</span>
+                <span className="font-bold">{formatCurrency(parseFloat(summary.opening.total))}</span>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">دفعات المشتريات</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-700">بنكك:</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(summary.procurementPayments?.BANK || '0'))}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">بنك النيل:</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(summary.procurementPayments?.BANK_NILE || '0'))}</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between">
+                <span className="font-semibold text-gray-800">الإجمالي:</span>
+                <span className="font-bold">{formatCurrency(parseFloat(summary.procurementPayments?.total || '0'))}</span>
+              </div>
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">صرف نقد/بنك</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-700">بنكك:</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(summary.cashExchanges?.BANK || '0'))}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-700">بنك النيل:</span>
+                <span className="font-semibold">{formatCurrency(parseFloat(summary.cashExchanges?.BANK_NILE || '0'))}</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between">
+                <span className="font-semibold text-gray-800">الإجمالي:</span>
+                <span className="font-bold">{formatCurrency(parseFloat(summary.cashExchanges?.total || '0'))}</span>
+              </div>
+            </div>
           </Card>
         </div>
       )}
