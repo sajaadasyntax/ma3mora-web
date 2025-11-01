@@ -189,27 +189,43 @@ export default function BankTransactionsPage() {
       </div>
 
       {/* Summary Cards - Net Balances */}
-      {summary && summary.net && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <h3 className="text-sm font-semibold mb-1">صافي بنكك</h3>
-            <p className="text-2xl font-bold">{formatCurrency(parseFloat(summary.net.BANK))}</p>
-            <p className="text-sm opacity-90 mt-1">صافي الرصيد المتاح</p>
-          </Card>
+      {summary && summary.net && (() => {
+        const bankValue = parseFloat(summary.net.BANK);
+        const bankNileValue = parseFloat(summary.net.BANK_NILE);
+        const totalValue = parseFloat(summary.net.total);
+        
+        const bankIsPositive = bankValue >= 0;
+        const bankNileIsPositive = bankNileValue >= 0;
+        const totalIsPositive = totalValue >= 0;
+        
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <Card className={bankIsPositive 
+              ? "bg-gradient-to-br from-green-500 to-green-600 text-white" 
+              : "bg-gradient-to-br from-red-500 to-red-600 text-white"}>
+              <h3 className="text-sm font-semibold mb-1">صافي بنكك</h3>
+              <p className="text-2xl font-bold">{formatCurrency(bankValue)}</p>
+              <p className="text-sm opacity-90 mt-1">صافي الرصيد المتاح</p>
+            </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-            <h3 className="text-sm font-semibold mb-1">صافي بنك النيل</h3>
-            <p className="text-2xl font-bold">{formatCurrency(parseFloat(summary.net.BANK_NILE))}</p>
-            <p className="text-sm opacity-90 mt-1">صافي الرصيد المتاح</p>
-          </Card>
+            <Card className={bankNileIsPositive 
+              ? "bg-gradient-to-br from-green-500 to-green-600 text-white" 
+              : "bg-gradient-to-br from-red-500 to-red-600 text-white"}>
+              <h3 className="text-sm font-semibold mb-1">صافي بنك النيل</h3>
+              <p className="text-2xl font-bold">{formatCurrency(bankNileValue)}</p>
+              <p className="text-sm opacity-90 mt-1">صافي الرصيد المتاح</p>
+            </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <h3 className="text-sm font-semibold mb-1">إجمالي الصافي</h3>
-            <p className="text-2xl font-bold">{formatCurrency(parseFloat(summary.net.total))}</p>
-            <p className="text-sm opacity-90 mt-1">إجمالي السيولة البنكية</p>
-          </Card>
-        </div>
-      )}
+            <Card className={totalIsPositive 
+              ? "bg-gradient-to-br from-green-500 to-green-600 text-white" 
+              : "bg-gradient-to-br from-red-500 to-red-600 text-white"}>
+              <h3 className="text-sm font-semibold mb-1">إجمالي الصافي</h3>
+              <p className="text-2xl font-bold">{formatCurrency(totalValue)}</p>
+              <p className="text-sm opacity-90 mt-1">إجمالي السيولة البنكية</p>
+            </Card>
+          </div>
+        );
+      })()}
 
       {/* Detailed Breakdown */}
       {summary && (
