@@ -42,16 +42,20 @@ export default function SupplierReportPage() {
 
     setLoading(true);
     try {
-      const data = await api.getSupplierReport({
-        startDate,
-        endDate,
-        supplierId: supplierId || undefined,
-        paymentMethod: paymentMethod || undefined,
-      });
-      setReport(data.data || []);
-      setSummary(data.summary || null);
+      // Ensure dates are properly formatted
+      const params: any = {
+        startDate: startDate ? new Date(startDate).toISOString().split('T')[0] : undefined,
+        endDate: endDate ? new Date(endDate).toISOString().split('T')[0] : undefined,
+      };
+      if (supplierId) params.supplierId = supplierId;
+      if (paymentMethod) params.paymentMethod = paymentMethod;
+
+      const data = await api.getSupplierReport(params);
+      setReport(data?.data || []);
+      setSummary(data?.summary || null);
     } catch (error: any) {
-      alert(error.message || 'فشل تحميل التقرير');
+      console.error('Error fetching supplier report:', error);
+      alert(error?.error || error?.message || 'فشل تحميل التقرير');
     } finally {
       setLoading(false);
     }

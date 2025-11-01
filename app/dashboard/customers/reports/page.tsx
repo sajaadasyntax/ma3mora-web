@@ -43,17 +43,21 @@ export default function CustomerReportPage() {
 
     setLoading(true);
     try {
-      const data = await api.getCustomerReport({
-        startDate,
-        endDate,
-        type: type || undefined,
-        customerId: customerId || undefined,
-        paymentMethod: paymentMethod || undefined,
-      });
-      setReport(data.data || []);
-      setSummary(data.summary || null);
+      // Ensure dates are properly formatted
+      const params: any = {
+        startDate: startDate ? new Date(startDate).toISOString().split('T')[0] : undefined,
+        endDate: endDate ? new Date(endDate).toISOString().split('T')[0] : undefined,
+      };
+      if (type) params.type = type;
+      if (customerId) params.customerId = customerId;
+      if (paymentMethod) params.paymentMethod = paymentMethod;
+
+      const data = await api.getCustomerReport(params);
+      setReport(data?.data || []);
+      setSummary(data?.summary || null);
     } catch (error: any) {
-      alert(error.message || 'فشل تحميل التقرير');
+      console.error('Error fetching customer report:', error);
+      alert(error?.error || error?.message || 'فشل تحميل التقرير');
     } finally {
       setLoading(false);
     }

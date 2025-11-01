@@ -226,6 +226,47 @@ export default function InventoryTransfersPage() {
     },
   ];
 
+  const printReport = () => {
+    const printSection = document.getElementById('transfer-print-section');
+    if (!printSection) return;
+
+    const printContent = printSection.innerHTML;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>تقرير نقل الأصناف</title>
+          <style>
+            body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .header { margin-bottom: 20px; }
+            .header h1 { margin: 0 0 10px 0; }
+            .header p { margin: 5px 0; color: #666; }
+            @media print {
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>تقرير نقل الأصناف بين المخازن</h1>
+            <p>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            ${filters.inventoryId ? `<p>المخزن: ${inventories.find(inv => inv.id === filters.inventoryId)?.name || 'الكل'}</p>` : ''}
+            ${filters.itemId ? `<p>الصنف: ${items.find(item => item.id === filters.itemId)?.name || 'الكل'}</p>` : ''}
+            <p>إجمالي عدد النقل: ${transfers.length}</p>
+          </div>
+          ${printContent}
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   if (loading) {
     return <div className="text-center py-8">جاري التحميل...</div>;
   }
@@ -363,8 +404,17 @@ export default function InventoryTransfersPage() {
       </Card>
 
       <Card>
-        <h2 className="text-xl font-semibold mb-4">سجل النقل</h2>
-        <Table columns={columns} data={transfers} />
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">سجل النقل</h2>
+          {transfers.length > 0 && (
+            <Button variant="secondary" onClick={printReport}>
+              🖨️ طباعة التقرير
+            </Button>
+          )}
+        </div>
+        <div id="transfer-print-section">
+          <Table columns={columns} data={transfers} />
+        </div>
       </Card>
     </div>
   );
