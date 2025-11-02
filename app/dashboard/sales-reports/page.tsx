@@ -33,7 +33,8 @@ export default function SalesReportsPage() {
   }, []);
 
   useEffect(() => {
-    loadReports();
+    // Don't load reports on mount - wait for user to set filters and click "عرض التقرير"
+    // loadReports();
   }, []);
 
   const loadInventories = async () => {
@@ -81,6 +82,8 @@ export default function SalesReportsPage() {
       if (filters.paymentMethod) params.paymentMethod = filters.paymentMethod;
       if (filters.viewType) params.viewType = filters.viewType;
 
+      console.log('Loading sales reports with params:', params);
+
       // Ensure aggregators are updated before loading report
       await ensureAggregatorsUpdated(dateStart, dateEnd, {
         inventoryId: filters.inventoryId || undefined,
@@ -89,9 +92,12 @@ export default function SalesReportsPage() {
       });
 
       const data = await api.getSalesReports(params);
+      console.log('Sales reports API response:', data);
       setReportData(data);
     } catch (error) {
       console.error('Error loading sales reports:', error);
+      // Show error to user
+      alert('حدث خطأ في تحميل التقرير. يرجى المحاولة مرة أخرى.');
     } finally {
       setLoading(false);
     }
@@ -113,6 +119,17 @@ export default function SalesReportsPage() {
   };
 
   const handleApplyFilters = () => {
+    // Validate required fields for items viewType
+    if (filters.viewType === 'items') {
+      if (!filters.startDate || !filters.endDate) {
+        alert('يرجى تحديد تاريخ البداية وتاريخ النهاية لعرض تقرير حركة المخزون');
+        return;
+      }
+      if (!filters.inventoryId) {
+        alert('يرجى تحديد المخزن لعرض تقرير حركة المخزون');
+        return;
+      }
+    }
     loadReports();
   };
 
