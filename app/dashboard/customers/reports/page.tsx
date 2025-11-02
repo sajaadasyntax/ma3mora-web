@@ -232,8 +232,6 @@ export default function CustomerReportPage() {
         </div>
       </Card>
 
-      {/* Stock Information Summary */}
-      {stockInfo && <StockInfoTable stockInfo={stockInfo} />}
 
       {summary && (
         <Card className="mb-6">
@@ -257,6 +255,9 @@ export default function CustomerReportPage() {
           </div>
         </Card>
       )}
+
+      {/* Stock Information Summary */}
+      {stockInfo && <StockInfoTable stockInfo={stockInfo} />}
 
       <div id="customer-print-section">
         <Card>

@@ -7,9 +7,10 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Select from '@/components/Select';
 import Input from '@/components/Input';
-import { formatCurrency, formatDateTime, paymentMethodLabels, sectionLabels } from '@/lib/utils';
+import { formatCurrency, formatDate, formatDateTime, formatNumber, paymentMethodLabels, sectionLabels } from '@/lib/utils';
 import { generateSalesReportPDF } from '@/lib/pdfUtils';
 import StockInfoTable from '@/components/StockInfoTable';
+import Table from '@/components/Table';
 import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
 export default function SalesReportsPage() {
@@ -23,6 +24,7 @@ export default function SalesReportsPage() {
     inventoryId: '',
     section: '',
     paymentMethod: '',
+    viewType: 'invoices', // 'invoices' for invoice-level, 'grouped' for period grouping
   });
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export default function SalesReportsPage() {
       if (filters.inventoryId) params.inventoryId = filters.inventoryId;
       if (filters.section) params.section = filters.section;
       if (filters.paymentMethod) params.paymentMethod = filters.paymentMethod;
+      if (filters.viewType) params.viewType = filters.viewType;
 
       // Ensure aggregators are updated before loading report
       await ensureAggregatorsUpdated(dateStart, dateEnd, {
@@ -107,6 +110,7 @@ export default function SalesReportsPage() {
       inventoryId: '',
       section: '',
       paymentMethod: '',
+      viewType: 'invoices',
     });
     loadReports();
   };
@@ -126,7 +130,7 @@ export default function SalesReportsPage() {
 
       {/* Filters */}
       <Card className="mb-6 print:hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {filters.period === 'monthly' ? 'الشهر' : 'تاريخ البداية'}
@@ -196,6 +200,20 @@ export default function SalesReportsPage() {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              نوع العرض
+            </label>
+            <Select
+              value={filters.viewType}
+              onChange={(e) => handleFilterChange('viewType', e.target.value)}
+              options={[
+                { value: 'invoices', label: 'تفاصيل الفواتير' },
+                { value: 'grouped', label: 'مجمعة حسب الفترة' },
+              ]}
+            />
+          </div>
+
           <div className="flex items-end gap-2">
             <Button onClick={handleApplyFilters} className="flex-1">
               تطبيق
@@ -254,7 +272,189 @@ export default function SalesReportsPage() {
       {/* Report Data */}
       {reportData?.data && (
         <div className="space-y-6">
-          {reportData.data.map((periodData: any, index: number) => (
+          {/* Check if data is invoice-level (has invoiceNumber) */}
+          {reportData.data.length > 0 && reportData.data[0]?.invoiceNumber ? (
+            // Invoice-level report (similar to supplier report)
+            <Card>
+              <Table
+                columns={[
+                  { key: 'invoiceNumber', label: 'رقم الفاتورة' },
+                  { 
+                    key: 'date', 
+                    label: 'التاريخ',
+                    render: (value: string) => new Date(value).toLocaleDateString('ar-EG')
+                  },
+                  { key: 'customer', label: 'العميل' },
+                  { key: 'inventory', label: 'المخزن' },
+                  {
+                    key: 'notes',
+                    label: 'الوصف',
+                    render: (value: string | null) => value || '-'
+                  },
+                  {
+                    key: 'items',
+                    label: 'الأصناف',
+                    render: (value: any[], row: any) => {
+                      if (!value || value.length === 0) return '-';
+                      return value.map(item => {
+                        const qty = parseFloat(item.quantity);
+                        // Format quantity: remove trailing zeros if whole number, otherwise show decimals
+                        const formattedQty = qty % 1 === 0 ? qty.toString() : qty.toFixed(2).replace(/\.?0+$/, '');
+                        return `${item.itemName}(${formattedQty})`;
+                      }).join(' + ');
+                    }
+                  },
+                  { 
+                    key: 'total', 
+                    label: 'الإجمالي',
+                    render: (value: string) => formatCurrency(parseFloat(value))
+                  },
+                  { 
+                    key: 'paidAmount', 
+                    label: 'المدفوع',
+                    render: (value: string) => formatCurrency(parseFloat(value))
+                  },
+                  { 
+                    key: 'outstanding', 
+                    label: 'المتبقي',
+                    render: (value: string) => formatCurrency(parseFloat(value))
+                  },
+                  {
+                    key: 'payments',
+                    label: 'المدفوعات',
+                    render: (value: any[], row: any) => {
+                      if (!value || value.length === 0) return '-';
+                      return (
+                        <div className="space-y-1">
+                          {value.map((payment, index) => (
+                            <div key={index} className="text-sm">
+                              {formatCurrency(parseFloat(payment.amount))} ({paymentMethodLabels[payment.method] || payment.method}) - {formatDate(payment.paidAt)}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+                  },
+                  { 
+                    key: 'paymentStatus', 
+                    label: 'حالة الدفع',
+                    render: (value: string) => {
+                      const statuses: Record<string, string> = {
+                        'PAID': 'مدفوعة',
+                        'PARTIAL': 'مدفوعة جزئياً',
+                        'CREDIT': 'دفع آجل'
+                      };
+                      return (
+                        <span className={`inline-block px-2 py-1 rounded text-sm ${
+                          value === 'PAID'
+                            ? 'bg-green-100 text-green-800'
+                            : value === 'PARTIAL'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}>
+                          {statuses[value] || value}
+                        </span>
+                      );
+                    }
+                  },
+                  { 
+                    key: 'deliveryStatus', 
+                    label: 'حالة التسليم',
+                    render: (value: string) => {
+                      const statuses: Record<string, string> = {
+                        'DELIVERED': 'مُسلَّمة',
+                        'PARTIAL': 'تسليم جزئي',
+                        'NOT_DELIVERED': 'غير مُسلَّمة'
+                      };
+                      return (
+                        <span className={`inline-block px-2 py-1 rounded text-sm ${
+                          value === 'DELIVERED'
+                            ? 'bg-green-100 text-green-800'
+                            : value === 'PARTIAL'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-orange-100 text-orange-800'
+                        }`}>
+                          {statuses[value] || value}
+                        </span>
+                      );
+                    }
+                  },
+                  { 
+                    key: 'paymentConfirmed', 
+                    label: 'تأكيد الدفع',
+                    render: (value: boolean) => (
+                      <span className={`inline-block px-2 py-1 rounded text-sm ${
+                        value ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+                      }`}>
+                        {value ? '✓ مؤكد' : '⏳ معلق'}
+                      </span>
+                    )
+                  },
+                ]}
+                data={reportData.data}
+              />
+            </Card>
+          ) : reportData.data.length > 0 && reportData.data[0]?.itemName ? (
+            // Item-level report (stock movements)
+            <Card>
+              <Table
+                columns={[
+                  { key: 'itemName', label: 'الصنف' },
+                  {
+                    key: 'openingBalance',
+                    label: 'رصيد افتتاحي',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                  {
+                    key: 'outgoing',
+                    label: 'منصرف',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                  {
+                    key: 'outgoingGifts',
+                    label: 'هدية منصرف',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                  {
+                    key: 'incoming',
+                    label: 'وارد',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                  {
+                    key: 'incomingGifts',
+                    label: 'هدية وارد',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                  {
+                    key: 'closingBalance',
+                    label: 'رصيد ختامي',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                ]}
+                data={reportData.data}
+              />
+            </Card>
+          ) : (
+            // Period-grouped report (invoices by date/month)
+            reportData.data.map((periodData: any, index: number) => (
             <Card key={index}>
               <div className="border-b pb-4 mb-4">
                 <h3 className="text-xl font-semibold text-gray-900">
@@ -355,7 +555,8 @@ export default function SalesReportsPage() {
                 </div>
               </div>
             </Card>
-          ))}
+          ))
+          )}
         </div>
       )}
 

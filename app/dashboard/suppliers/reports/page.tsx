@@ -120,6 +120,11 @@ export default function SupplierReportPage() {
     },
     { key: 'supplier', label: 'المورد' },
     {
+      key: 'notes',
+      label: 'الوصف',
+      render: (value: string | null) => value || '-'
+    },
+    {
       key: 'items',
       label: 'الأصناف',
       render: (value: any[], row: any) => {
