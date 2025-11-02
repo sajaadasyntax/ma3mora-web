@@ -423,11 +423,19 @@ export default function SalesReportsPage() {
               />
             </Card>
           ) : reportData.data.length > 0 && reportData.data[0]?.itemName ? (
-            // Item-level report (stock movements)
+            // Item-level report (stock movements) - Strict column format
             <Card>
               <Table
                 columns={[
-                  { key: 'itemName', label: 'الصنف' },
+                  {
+                    key: 'serial',
+                    label: 'ترقيم',
+                    render: (_: any, row: any, index: number) => index + 1
+                  },
+                  { 
+                    key: 'itemName', 
+                    label: 'الصنف' 
+                  },
                   {
                     key: 'openingBalance',
                     label: 'رصيد افتتاحي',

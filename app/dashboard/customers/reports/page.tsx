@@ -7,8 +7,9 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
+import MultiSelect from '@/components/MultiSelect';
 import Table from '@/components/Table';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, sectionLabels } from '@/lib/utils';
 import StockInfoTable from '@/components/StockInfoTable';
 import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
@@ -17,7 +18,8 @@ export default function CustomerReportPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [type, setType] = useState('');
-  const [customerId, setCustomerId] = useState('');
+  const [customerIds, setCustomerIds] = useState<string[]>([]);
+  const [section, setSection] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,11 +54,15 @@ export default function CustomerReportPage() {
         endDate: endDate ? new Date(endDate).toISOString().split('T')[0] : undefined,
       };
       if (type) params.type = type;
-      if (customerId) params.customerId = customerId;
+      if (customerIds.length > 0) params.customerIds = customerIds.join(',');
+      if (section) params.section = section;
       if (paymentMethod) params.paymentMethod = paymentMethod;
 
       // Ensure aggregators are updated before loading report
-      await ensureAggregatorsUpdated(startDate, endDate, { silent: true });
+      await ensureAggregatorsUpdated(startDate, endDate, {
+        section: section || undefined,
+        silent: true,
+      });
       
       const data = await api.getCustomerReport(params);
       setReport(data?.data || []);
@@ -176,7 +182,7 @@ export default function CustomerReportPage() {
       </div>
 
       <Card className="mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
           <Input
             label="من تاريخ"
             type="date"
@@ -199,13 +205,20 @@ export default function CustomerReportPage() {
               { value: 'RETAIL', label: 'قطاعي' },
             ]}
           />
+          <MultiSelect
+            label="العملاء"
+            options={customers.map((c) => ({ value: c.id, label: c.name }))}
+            selectedValues={customerIds}
+            onChange={setCustomerIds}
+          />
           <Select
-            label="العميل"
-            value={customerId}
-            onChange={(e) => setCustomerId(e.target.value)}
+            label="القسم"
+            value={section}
+            onChange={(e) => setSection(e.target.value)}
             options={[
-              { value: '', label: 'الكل' },
-              ...customers.map((c) => ({ value: c.id, label: c.name })),
+              { value: '', label: 'جميع الأقسام' },
+              { value: 'GROCERY', label: 'بقالات' },
+              { value: 'BAKERY', label: 'أفران' },
             ]}
           />
           <Select
@@ -219,7 +232,7 @@ export default function CustomerReportPage() {
               { value: 'BANK_NILE', label: 'بنك النيل' },
             ]}
           />
-          <div className="md:col-span-5 flex gap-2">
+          <div className="md:col-span-6 flex gap-2">
             <Button onClick={fetchReport} disabled={loading}>
               {loading ? 'جاري التحميل...' : 'عرض التقرير'}
             </Button>

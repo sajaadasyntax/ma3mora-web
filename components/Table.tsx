@@ -3,7 +3,7 @@ import React from 'react';
 interface Column {
   key: string;
   label: string;
-  render?: (value: any, row: any) => React.ReactNode;
+  render?: (value: any, row: any, index?: number) => React.ReactNode;
 }
 
 interface TableProps {
@@ -51,7 +51,7 @@ export default function Table({ columns, data, onRowClick }: TableProps) {
                     className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                   >
                     {column.render
-                      ? column.render(row[column.key], row)
+                      ? column.render(row[column.key], row, idx)
                       : row[column.key]}
                   </td>
                 ))}
