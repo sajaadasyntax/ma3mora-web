@@ -299,10 +299,76 @@ export default function SalesReportsPage() {
       {reportData?.stockInfo && <StockInfoTable stockInfo={reportData.stockInfo} />}
 
       {/* Report Data */}
-      {reportData?.data && (
+      {/* Always show item-based table when viewType is 'items' */}
+      {filters.viewType === 'items' ? (
+        <Card>
+          <Table
+            columns={[
+              {
+                key: 'serial',
+                label: 'ترقيم',
+                render: (_: any, row: any, index?: number) => (index !== undefined ? index + 1 : '-')
+              },
+              { 
+                key: 'itemName', 
+                label: 'الصنف' 
+              },
+              {
+                key: 'openingBalance',
+                label: 'رصيد افتتاحي',
+                render: (value: number) => {
+                  const val = typeof value === 'string' ? parseFloat(value) : value;
+                  return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                }
+              },
+              {
+                key: 'outgoing',
+                label: 'منصرف',
+                render: (value: number) => {
+                  const val = typeof value === 'string' ? parseFloat(value) : value;
+                  return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                }
+              },
+              {
+                key: 'outgoingGifts',
+                label: 'هدية منصرف',
+                render: (value: number) => {
+                  const val = typeof value === 'string' ? parseFloat(value) : value;
+                  return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                }
+              },
+              {
+                key: 'incoming',
+                label: 'وارد',
+                render: (value: number) => {
+                  const val = typeof value === 'string' ? parseFloat(value) : value;
+                  return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                }
+              },
+              {
+                key: 'incomingGifts',
+                label: 'هدية وارد',
+                render: (value: number) => {
+                  const val = typeof value === 'string' ? parseFloat(value) : value;
+                  return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                }
+              },
+              {
+                key: 'closingBalance',
+                label: 'رصيد ختامي',
+                render: (value: number) => {
+                  const val = typeof value === 'string' ? parseFloat(value) : value;
+                  return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                }
+              },
+            ]}
+            data={reportData?.data || []}
+          />
+        </Card>
+      ) : reportData?.data !== undefined && (
         <div className="space-y-6">
-          {/* Item-level report (stock movements) - Show first if viewType is 'items' or if data has itemName */}
-          {(filters.viewType === 'items' || (reportData.data.length > 0 && reportData.data[0]?.itemName)) ? (
+          {/* Item-level report (stock movements) - Show if data has itemName */}
+          {reportData.data.length > 0 && reportData.data[0]?.itemName ? (
             // Item-level report (stock movements) - Strict column format
             <Card>
               <Table
@@ -365,10 +431,10 @@ export default function SalesReportsPage() {
                     }
                   },
                 ]}
-                data={reportData.data}
+                data={reportData.data || []}
               />
             </Card>
-          ) : reportData.data.length > 0 && reportData.data[0]?.invoiceNumber ? (
+          ) : reportData.data && reportData.data.length > 0 && reportData.data[0]?.invoiceNumber ? (
             // Invoice-level report (similar to supplier report)
             <Card>
               <Table
@@ -597,7 +663,7 @@ export default function SalesReportsPage() {
         </div>
       )}
 
-      {reportData?.data?.length === 0 && (
+      {filters.viewType !== 'items' && reportData?.data !== undefined && reportData.data.length === 0 && (
         <Card>
           <div className="text-center py-8 text-gray-500">
             لا توجد بيانات للفترة المحددة
