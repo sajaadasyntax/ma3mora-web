@@ -25,7 +25,7 @@ export default function SalesReportsPage() {
     inventoryId: '',
     section: '',
     paymentMethod: '',
-    viewType: 'invoices', // 'invoices' for invoice-level, 'grouped' for period grouping
+    viewType: 'items', // 'items' for item-level stock movements, 'invoices' for invoice-level, 'grouped' for period grouping
   });
 
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function SalesReportsPage() {
       inventoryId: '',
       section: '',
       paymentMethod: '',
-      viewType: 'invoices',
+      viewType: 'items',
     });
     loadReports();
   };
@@ -236,6 +236,7 @@ export default function SalesReportsPage() {
               value={filters.viewType}
               onChange={(e) => handleFilterChange('viewType', e.target.value)}
               options={[
+                { value: 'items', label: 'حركة المخزون (أصناف)' },
                 { value: 'invoices', label: 'تفاصيل الفواتير' },
                 { value: 'grouped', label: 'مجمعة حسب الفترة' },
               ]}
@@ -300,8 +301,74 @@ export default function SalesReportsPage() {
       {/* Report Data */}
       {reportData?.data && (
         <div className="space-y-6">
-          {/* Check if data is invoice-level (has invoiceNumber) */}
-          {reportData.data.length > 0 && reportData.data[0]?.invoiceNumber ? (
+          {/* Item-level report (stock movements) - Show first if viewType is 'items' or if data has itemName */}
+          {(filters.viewType === 'items' || (reportData.data.length > 0 && reportData.data[0]?.itemName)) ? (
+            // Item-level report (stock movements) - Strict column format
+            <Card>
+              <Table
+                columns={[
+                  {
+                    key: 'serial',
+                    label: 'ترقيم',
+                    render: (_: any, row: any, index?: number) => (index !== undefined ? index + 1 : '-')
+                  },
+                  { 
+                    key: 'itemName', 
+                    label: 'الصنف' 
+                  },
+                  {
+                    key: 'openingBalance',
+                    label: 'رصيد افتتاحي',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                  {
+                    key: 'outgoing',
+                    label: 'منصرف',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                  {
+                    key: 'outgoingGifts',
+                    label: 'هدية منصرف',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                  {
+                    key: 'incoming',
+                    label: 'وارد',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                  {
+                    key: 'incomingGifts',
+                    label: 'هدية وارد',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                  {
+                    key: 'closingBalance',
+                    label: 'رصيد ختامي',
+                    render: (value: number) => {
+                      const val = typeof value === 'string' ? parseFloat(value) : value;
+                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
+                    }
+                  },
+                ]}
+                data={reportData.data}
+              />
+            </Card>
+          ) : reportData.data.length > 0 && reportData.data[0]?.invoiceNumber ? (
             // Invoice-level report (similar to supplier report)
             <Card>
               <Table
@@ -417,72 +484,6 @@ export default function SalesReportsPage() {
                         {value ? '✓ مؤكد' : '⏳ معلق'}
                       </span>
                     )
-                  },
-                ]}
-                data={reportData.data}
-              />
-            </Card>
-          ) : reportData.data.length > 0 && reportData.data[0]?.itemName ? (
-            // Item-level report (stock movements) - Strict column format
-            <Card>
-              <Table
-                columns={[
-                  {
-                    key: 'serial',
-                    label: 'ترقيم',
-                    render: (_: any, row: any, index?: number) => (index !== undefined ? index + 1 : '-')
-                  },
-                  { 
-                    key: 'itemName', 
-                    label: 'الصنف' 
-                  },
-                  {
-                    key: 'openingBalance',
-                    label: 'رصيد افتتاحي',
-                    render: (value: number) => {
-                      const val = typeof value === 'string' ? parseFloat(value) : value;
-                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
-                    }
-                  },
-                  {
-                    key: 'outgoing',
-                    label: 'منصرف',
-                    render: (value: number) => {
-                      const val = typeof value === 'string' ? parseFloat(value) : value;
-                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
-                    }
-                  },
-                  {
-                    key: 'outgoingGifts',
-                    label: 'هدية منصرف',
-                    render: (value: number) => {
-                      const val = typeof value === 'string' ? parseFloat(value) : value;
-                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
-                    }
-                  },
-                  {
-                    key: 'incoming',
-                    label: 'وارد',
-                    render: (value: number) => {
-                      const val = typeof value === 'string' ? parseFloat(value) : value;
-                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
-                    }
-                  },
-                  {
-                    key: 'incomingGifts',
-                    label: 'هدية وارد',
-                    render: (value: number) => {
-                      const val = typeof value === 'string' ? parseFloat(value) : value;
-                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
-                    }
-                  },
-                  {
-                    key: 'closingBalance',
-                    label: 'رصيد ختامي',
-                    render: (value: number) => {
-                      const val = typeof value === 'string' ? parseFloat(value) : value;
-                      return val % 1 === 0 ? val.toString() : val.toFixed(2).replace(/\.?0+$/, '');
-                    }
                   },
                 ]}
                 data={reportData.data}
