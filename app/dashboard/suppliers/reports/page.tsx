@@ -19,6 +19,7 @@ export default function SupplierReportPage() {
   const [endDate, setEndDate] = useState('');
   const [supplierIds, setSupplierIds] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [outstandingOnly, setOutstandingOnly] = useState(false);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<any[]>([]);
@@ -53,6 +54,7 @@ export default function SupplierReportPage() {
       };
       if (supplierIds.length > 0) params.supplierIds = supplierIds.join(',');
       if (paymentMethod) params.paymentMethod = paymentMethod;
+      if (outstandingOnly) params.outstandingOnly = 'true';
 
       // Ensure aggregators are updated before loading report
       await ensureAggregatorsUpdated(startDate, endDate, { silent: true });
@@ -228,6 +230,17 @@ export default function SupplierReportPage() {
               { value: 'BANK_NILE', label: 'بنك النيل' },
             ]}
           />
+          <div className="md:col-span-4 flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={outstandingOnly}
+                onChange={(e) => setOutstandingOnly(e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">عرض الطلبات المتأخرة فقط</span>
+            </label>
+          </div>
           <div className="md:col-span-4 flex gap-2">
             <Button onClick={fetchReport} disabled={loading}>
               {loading ? 'جاري التحميل...' : 'عرض التقرير'}
