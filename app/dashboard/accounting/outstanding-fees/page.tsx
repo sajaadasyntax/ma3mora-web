@@ -7,7 +7,8 @@ import Card from '@/components/Card';
 import Table from '@/components/Table';
 import Button from '@/components/Button';
 import Select from '@/components/Select';
-import { formatCurrency, sectionLabels, customerTypeLabels } from '@/lib/utils';
+import Input from '@/components/Input';
+import { formatCurrency, formatDate, paymentMethodLabels, sectionLabels, customerTypeLabels, paymentStatusLabels, deliveryStatusLabels, procOrderStatusLabels } from '@/lib/utils';
 import { generatePDF } from '@/lib/pdfUtils';
 import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
@@ -18,6 +19,8 @@ export default function OutstandingFeesPage() {
   const [filters, setFilters] = useState({
     section: 'ALL',
     period: 'ALL',
+    startDate: '',
+    endDate: '',
   });
 
   useEffect(() => {
@@ -31,7 +34,10 @@ export default function OutstandingFeesPage() {
       if (filters.section !== 'ALL') {
         params.section = filters.section;
       }
-      if (filters.period !== 'ALL') {
+      if (filters.startDate && filters.endDate) {
+        params.startDate = filters.startDate;
+        params.endDate = filters.endDate;
+      } else if (filters.period !== 'ALL') {
         params.period = filters.period;
       }
       
@@ -84,25 +90,43 @@ export default function OutstandingFeesPage() {
     const periodLabels: Record<string, string> = { ALL: 'الكل', today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', year: 'هذا العام' };
     const periodLabel = periodLabels[filters.period] || 'الكل';
 
-    const customersRows = (data.customers || []).map((c: any) => `
+    const customersRows = (data.customers || []).map((inv: any) => `
       <tr>
-        <td>${c.name}</td>
-        <td>${customerTypeLabels[c.type] || c.type}</td>
-        <td>${sectionLabels[c.division] || c.division}</td>
-        <td>${formatCurrency(c.accountsReceivable)}</td>
-        <td>${parseFloat(c.openingBalance) !== 0 ? (parseFloat(c.openingBalance) > 0 ? '+' : '') + formatCurrency(c.openingBalance) : formatCurrency(0)}</td>
-        <td>${formatCurrency(Math.abs(parseFloat(c.netOutstanding)))}</td>
-        <td>${c.outstandingType === 'OWES_US' ? 'العميل مدين لنا' : c.outstandingType === 'WE_OWE' ? 'نحن مدينون للعميل' : 'متساوي'}</td>
+        <td>${inv.invoiceNumber}</td>
+        <td>${new Date(inv.date).toLocaleDateString('ar-EG')}</td>
+        <td>${inv.customer}</td>
+        <td>${customerTypeLabels[inv.customerType] || inv.customerType}</td>
+        <td>${inv.notes || '-'}</td>
+        <td>${inv.items?.map((item: any) => {
+          const qty = parseFloat(item.quantity);
+          const formattedQty = qty % 1 === 0 ? qty.toString() : qty.toFixed(2).replace(/\.?0+$/, '');
+          return `${item.itemName}(${formattedQty})`;
+        }).join(' + ') || '-'}</td>
+        <td>${formatCurrency(parseFloat(inv.total))}</td>
+        <td>${formatCurrency(parseFloat(inv.paidAmount))}</td>
+        <td>${formatCurrency(parseFloat(inv.outstanding))}</td>
+        <td>${inv.payments?.map((p: any) => `${formatCurrency(parseFloat(p.amount))} (${paymentMethodLabels[p.method] || p.method}) - ${formatDate(p.paidAt)}`).join('<br>') || '-'}</td>
+        <td>${paymentStatusLabels[inv.paymentStatus] || inv.paymentStatus}</td>
       </tr>
     `).join('');
 
-    const suppliersRows = (data.suppliers || []).map((s: any) => `
+    const suppliersRows = (data.suppliers || []).map((order: any) => `
       <tr>
-        <td>${s.name}</td>
-        <td>${formatCurrency(s.accountsPayable)}</td>
-        <td>${parseFloat(s.openingBalance) !== 0 ? (parseFloat(s.openingBalance) > 0 ? '+' : '') + formatCurrency(s.openingBalance) : formatCurrency(0)}</td>
-        <td>${formatCurrency(Math.abs(parseFloat(s.netOutstanding)))}</td>
-        <td>${s.outstandingType === 'WE_OWE' ? 'نحن مدينون للمورد' : s.outstandingType === 'OWES_US' ? 'المورد مدين لنا' : 'متساوي'}</td>
+        <td>${order.orderNumber}</td>
+        <td>${new Date(order.date).toLocaleDateString('ar-EG')}</td>
+        <td>${order.supplier}</td>
+        <td>${order.notes || '-'}</td>
+        <td>${order.items?.map((item: any) => {
+          const qty = parseFloat(item.quantity);
+          const formattedQty = qty % 1 === 0 ? qty.toString() : qty.toFixed(2).replace(/\.?0+$/, '');
+          return `${item.itemName}(${formattedQty})`;
+        }).join(' + ') || '-'}</td>
+        <td>${formatCurrency(parseFloat(order.total))}</td>
+        <td>${formatCurrency(parseFloat(order.paidAmount))}</td>
+        <td>${formatCurrency(parseFloat(order.outstanding))}</td>
+        <td>${order.payments?.map((p: any) => `${formatCurrency(parseFloat(p.amount))} (${paymentMethodLabels[p.method] || p.method}) - ${formatDate(p.paidAt)}`).join('<br>') || '-'}</td>
+        <td>${order.paymentStatus === 'CONFIRMED' ? 'مؤكد' : 'معلق'}</td>
+        <td>${procOrderStatusLabels[order.status] || order.status}</td>
       </tr>
     `).join('');
 
@@ -123,20 +147,20 @@ export default function OutstandingFeesPage() {
           </thead>
           <tbody>
             <tr>
-              <td>العملاء مدينون لنا</td>
-              <td>${formatCurrency(data.summary.customersOwesUs)}</td>
+              <td>عدد فواتير العملاء المتأخرة</td>
+              <td>${data.summary.totalCustomersOutstanding || 0}</td>
             </tr>
             <tr>
-              <td>نحن مدينون للعملاء</td>
-              <td>${formatCurrency(data.summary.weOweCustomers)}</td>
+              <td>العملاء مدينون لنا</td>
+              <td>${formatCurrency(parseFloat(data.summary.customersOwesUs || '0'))}</td>
+            </tr>
+            <tr>
+              <td>عدد أوامر الموردين المتأخرة</td>
+              <td>${data.summary.totalSuppliersOutstanding || 0}</td>
             </tr>
             <tr>
               <td>نحن مدينون للموردين</td>
-              <td>${formatCurrency(data.summary.weOweSuppliers)}</td>
-            </tr>
-            <tr>
-              <td>الموردون مدينون لنا</td>
-              <td>${formatCurrency(data.summary.suppliersOwesUs)}</td>
+              <td>${formatCurrency(parseFloat(data.summary.weOweSuppliers || '0'))}</td>
             </tr>
           </tbody>
         </table>
@@ -147,13 +171,17 @@ export default function OutstandingFeesPage() {
         <table>
           <thead>
             <tr>
+              <th>رقم الفاتورة</th>
+              <th>التاريخ</th>
               <th>العميل</th>
-              <th>النوع</th>
-              <th>القسم</th>
-              <th>ذمم (فواتير)</th>
-              <th>رصيد افتتاحي</th>
+              <th>نوع العميل</th>
+              <th>الوصف</th>
+              <th>الأصناف</th>
+              <th>الإجمالي</th>
+              <th>المدفوع</th>
               <th>المتبقي</th>
-              <th>الجهة</th>
+              <th>المدفوعات</th>
+              <th>حالة الدفع</th>
             </tr>
           </thead>
           <tbody>
@@ -167,11 +195,17 @@ export default function OutstandingFeesPage() {
         <table>
           <thead>
             <tr>
+              <th>رقم الطلب</th>
+              <th>التاريخ</th>
               <th>المورد</th>
-              <th>ذمم (أوامر)</th>
-              <th>رصيد افتتاحي</th>
+              <th>الوصف</th>
+              <th>الأصناف</th>
+              <th>الإجمالي</th>
+              <th>المدفوع</th>
               <th>المتبقي</th>
-              <th>الجهة</th>
+              <th>المدفوعات</th>
+              <th>حالة الدفع</th>
+              <th>الحالة</th>
             </tr>
           </thead>
           <tbody>
@@ -193,98 +227,138 @@ export default function OutstandingFeesPage() {
   };
 
   const customerColumns = [
+    { key: 'invoiceNumber', label: 'رقم الفاتورة' },
+    { 
+      key: 'date', 
+      label: 'التاريخ',
+      render: (value: string) => new Date(value).toLocaleDateString('ar-EG')
+    },
+    { key: 'customer', label: 'العميل' },
     {
-      key: 'name',
-      label: 'اسم العميل',
+      key: 'customerType',
+      label: 'نوع العميل',
+      render: (value: string) => customerTypeLabels[value] || value
     },
     {
-      key: 'type',
-      label: 'النوع',
-      render: (value: string) => customerTypeLabels[value] || value,
+      key: 'notes',
+      label: 'الوصف',
+      render: (value: string | null) => value || '-'
     },
     {
-      key: 'division',
-      label: 'القسم',
-      render: (value: string) => sectionLabels[value] || value,
+      key: 'items',
+      label: 'الأصناف',
+      render: (value: any[], row: any) => {
+        if (!value || value.length === 0) return '-';
+        return value.map(item => {
+          const qty = parseFloat(item.quantity);
+          const formattedQty = qty % 1 === 0 ? qty.toString() : qty.toFixed(2).replace(/\.?0+$/, '');
+          return `${item.itemName}(${formattedQty})`;
+        }).join(' + ');
+      }
+    },
+    { 
+      key: 'total', 
+      label: 'الإجمالي',
+      render: (value: string) => formatCurrency(parseFloat(value))
+    },
+    { 
+      key: 'paidAmount', 
+      label: 'المدفوع',
+      render: (value: string) => formatCurrency(parseFloat(value))
+    },
+    { 
+      key: 'outstanding', 
+      label: 'المتبقي',
+      render: (value: string) => formatCurrency(parseFloat(value))
     },
     {
-      key: 'accountsReceivable',
-      label: 'الذمم المدينة (من الفواتير)',
-      render: (value: string) => formatCurrency(parseFloat(value)),
-    },
-    {
-      key: 'openingBalance',
-      label: 'رصيد افتتاحي',
-      render: (value: string) => {
-        const val = parseFloat(value);
+      key: 'payments',
+      label: 'المدفوعات',
+      render: (value: any[], row: any) => {
+        if (!value || value.length === 0) return '-';
         return (
-          <span className={val !== 0 ? (val > 0 ? 'text-orange-600' : 'text-purple-600') : ''}>
-            {val !== 0 && (val > 0 ? '+' : '')}{formatCurrency(val)}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'netOutstanding',
-      label: 'المتبقي الإجمالي',
-      render: (value: string, row: any) => {
-        const val = parseFloat(value);
-        return (
-          <div>
-            <div className={`font-bold ${
-              val > 0 ? 'text-red-700' : val < 0 ? 'text-orange-700' : 'text-gray-700'
-            }`}>
-              {formatCurrency(Math.abs(val))}
-            </div>
-            <div className="text-xs text-gray-500">
-              {val > 0 ? 'العميل مدين لنا' : val < 0 ? 'نحن مدينون للعميل' : 'متساوي'}
-            </div>
+          <div className="space-y-1">
+            {value.map((payment, index) => (
+              <div key={index} className="text-sm">
+                {formatCurrency(parseFloat(payment.amount))} ({paymentMethodLabels[payment.method] || payment.method}) - {formatDate(payment.paidAt)}
+              </div>
+            ))}
           </div>
         );
-      },
+      }
+    },
+    { 
+      key: 'paymentStatus', 
+      label: 'حالة الدفع',
+      render: (value: string) => paymentStatusLabels[value] || value
     },
   ];
 
   const supplierColumns = [
+    { key: 'orderNumber', label: 'رقم الطلب' },
+    { 
+      key: 'date', 
+      label: 'التاريخ',
+      render: (value: string) => new Date(value).toLocaleDateString('ar-EG')
+    },
+    { key: 'supplier', label: 'المورد' },
     {
-      key: 'name',
-      label: 'اسم المورد',
+      key: 'notes',
+      label: 'الوصف',
+      render: (value: string | null) => value || '-'
     },
     {
-      key: 'accountsPayable',
-      label: 'الذمم الدائنة (من الأوامر)',
-      render: (value: string) => formatCurrency(parseFloat(value)),
+      key: 'items',
+      label: 'الأصناف',
+      render: (value: any[], row: any) => {
+        if (!value || value.length === 0) return '-';
+        return value.map(item => {
+          const qty = parseFloat(item.quantity);
+          const formattedQty = qty % 1 === 0 ? qty.toString() : qty.toFixed(2).replace(/\.?0+$/, '');
+          return `${item.itemName}(${formattedQty})`;
+        }).join(' + ');
+      }
+    },
+    { 
+      key: 'total', 
+      label: 'الإجمالي',
+      render: (value: string) => formatCurrency(parseFloat(value))
+    },
+    { 
+      key: 'paidAmount', 
+      label: 'المدفوع',
+      render: (value: string) => formatCurrency(parseFloat(value))
+    },
+    { 
+      key: 'outstanding', 
+      label: 'المتبقي',
+      render: (value: string) => formatCurrency(parseFloat(value))
     },
     {
-      key: 'openingBalance',
-      label: 'رصيد افتتاحي',
-      render: (value: string) => {
-        const val = parseFloat(value);
+      key: 'payments',
+      label: 'المدفوعات',
+      render: (value: any[], row: any) => {
+        if (!value || value.length === 0) return '-';
         return (
-          <span className={val !== 0 ? (val > 0 ? 'text-purple-600' : 'text-orange-600') : ''}>
-            {val !== 0 && (val > 0 ? '+' : '')}{formatCurrency(val)}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'netOutstanding',
-      label: 'المتبقي الإجمالي',
-      render: (value: string, row: any) => {
-        const val = parseFloat(value);
-        return (
-          <div>
-            <div className={`font-bold ${
-              val > 0 ? 'text-red-700' : val < 0 ? 'text-orange-700' : 'text-gray-700'
-            }`}>
-              {formatCurrency(Math.abs(val))}
-            </div>
-            <div className="text-xs text-gray-500">
-              {val > 0 ? 'نحن مدينون للمورد' : val < 0 ? 'المورد مدين لنا' : 'متساوي'}
-            </div>
+          <div className="space-y-1">
+            {value.map((payment, index) => (
+              <div key={index} className="text-sm">
+                {formatCurrency(parseFloat(payment.amount))} ({paymentMethodLabels[payment.method] || payment.method}) - {formatDate(payment.paidAt)}
+              </div>
+            ))}
           </div>
         );
-      },
+      }
+    },
+    { 
+      key: 'paymentStatus', 
+      label: 'حالة الدفع',
+      render: (value: string) => value === 'CONFIRMED' ? 'مؤكد' : 'معلق'
+    },
+    { 
+      key: 'status', 
+      label: 'الحالة',
+      render: (value: string) => procOrderStatusLabels[value] || value
     },
   ];
 
@@ -308,7 +382,19 @@ export default function OutstandingFeesPage() {
       {/* Filters */}
       <Card className="mb-6 print:hidden">
         <h2 className="text-xl font-semibold mb-4">مرشحات البحث</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Input
+            label="من تاريخ"
+            type="date"
+            value={filters.startDate}
+            onChange={(e) => setFilters({ ...filters, startDate: e.target.value, period: 'ALL' })}
+          />
+          <Input
+            label="إلى تاريخ"
+            type="date"
+            value={filters.endDate}
+            onChange={(e) => setFilters({ ...filters, endDate: e.target.value, period: 'ALL' })}
+          />
           <Select
             label="القسم"
             value={filters.section}
@@ -322,7 +408,9 @@ export default function OutstandingFeesPage() {
           <Select
             label="الفترة الزمنية"
             value={filters.period}
-            onChange={(e) => setFilters({ ...filters, period: e.target.value })}
+            onChange={(e) => {
+              setFilters({ ...filters, period: e.target.value, startDate: '', endDate: '' });
+            }}
             options={[
               { value: 'ALL', label: 'الكل' },
               { value: 'today', label: 'اليوم' },
@@ -335,54 +423,33 @@ export default function OutstandingFeesPage() {
       </Card>
 
       {/* Summary */}
-      <Card className="mb-6">
-        <h2 className="text-xl font-semibold mb-4">الملخص</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-sm text-gray-600 mb-1">العملاء مدينون لنا</p>
-            <p className="text-2xl font-bold text-red-700">
-              {formatCurrency(parseFloat(data.summary.customersOwesUs))}
-            </p>
+      {data.summary && (
+        <Card className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">الملخص</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <div className="text-sm text-gray-600">عدد فواتير العملاء المتأخرة</div>
+              <div className="text-2xl font-bold">{data.summary.totalCustomersOutstanding || 0}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600">العملاء مدينون لنا</div>
+              <div className="text-2xl font-bold text-red-700">
+                {formatCurrency(parseFloat(data.summary.customersOwesUs || '0'))}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600">عدد أوامر الموردين المتأخرة</div>
+              <div className="text-2xl font-bold">{data.summary.totalSuppliersOutstanding || 0}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600">نحن مدينون للموردين</div>
+              <div className="text-2xl font-bold text-red-700">
+                {formatCurrency(parseFloat(data.summary.weOweSuppliers || '0'))}
+              </div>
+            </div>
           </div>
-          <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-            <p className="text-sm text-gray-600 mb-1">نحن مدينون للعملاء</p>
-            <p className="text-2xl font-bold text-orange-700">
-              {formatCurrency(parseFloat(data.summary.weOweCustomers))}
-            </p>
-          </div>
-          <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-sm text-gray-600 mb-1">نحن مدينون للموردين</p>
-            <p className="text-2xl font-bold text-red-700">
-              {formatCurrency(parseFloat(data.summary.weOweSuppliers))}
-            </p>
-          </div>
-          <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-            <p className="text-sm text-gray-600 mb-1">الموردون مدينون لنا</p>
-            <p className="text-2xl font-bold text-orange-700">
-              {formatCurrency(parseFloat(data.summary.suppliersOwesUs))}
-            </p>
-          </div>
-        </div>
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm font-semibold text-gray-700 mb-1">صافي المتبقي</p>
-          <p className="text-2xl font-bold text-blue-700">
-            {formatCurrency(
-              parseFloat(data.summary.customersOwesUs) +
-              parseFloat(data.summary.suppliersOwesUs) -
-              parseFloat(data.summary.weOweCustomers) -
-              parseFloat(data.summary.weOweSuppliers)
-            )}
-          </p>
-          <p className="text-xs text-gray-600 mt-1">
-            {(parseFloat(data.summary.customersOwesUs) +
-              parseFloat(data.summary.suppliersOwesUs) -
-              parseFloat(data.summary.weOweCustomers) -
-              parseFloat(data.summary.weOweSuppliers)) > 0
-              ? 'إجمالي ما هو مستحق لنا'
-              : 'إجمالي ما هو مستحق منا'}
-          </p>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Customers Outstanding */}
       <Card className="mb-6">

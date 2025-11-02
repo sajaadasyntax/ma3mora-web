@@ -342,7 +342,7 @@ export const api = {
     fetchAPI('/procurement/reports', { params }),
 
   // Outstanding Fees
-  getOutstandingFees: (params?: { section?: string; period?: string }) =>
+  getOutstandingFees: (params?: { section?: string; period?: string; startDate?: string; endDate?: string }) =>
     fetchAPI('/accounting/outstanding-fees', { params }),
 
   // Customer Report

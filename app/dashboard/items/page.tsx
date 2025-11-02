@@ -13,6 +13,8 @@ import { formatCurrency, sectionLabels } from '@/lib/utils';
 export default function ItemsPage() {
   const { user } = useUser();
   const [items, setItems] = useState<any[]>([]);
+  const [inventories, setInventories] = useState<any[]>([]);
+  const [selectedInventory, setSelectedInventory] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [updatingPrices, setUpdatingPrices] = useState(false);
@@ -28,11 +30,25 @@ export default function ItemsPage() {
   const [priceData, setPriceData] = useState({
     wholesalePrice: '',
     retailPrice: '',
+    inventoryId: '',
   });
 
   useEffect(() => {
+    loadInventories();
     loadItems();
   }, []);
+
+  const loadInventories = async () => {
+    try {
+      const data = await api.getInventories();
+      setInventories(data);
+      if (data.length > 0) {
+        setSelectedInventory(data[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading inventories:', error);
+    }
+  };
 
   const loadItems = async () => {
     try {
@@ -76,9 +92,10 @@ export default function ItemsPage() {
       await api.updateItemPrices(itemId, {
         wholesalePrice: priceData.wholesalePrice ? parseFloat(priceData.wholesalePrice) : undefined,
         retailPrice: priceData.retailPrice ? parseFloat(priceData.retailPrice) : undefined,
+        inventoryId: priceData.inventoryId || undefined,
       });
       setEditingPrices(null);
-      setPriceData({ wholesalePrice: '', retailPrice: '' });
+      setPriceData({ wholesalePrice: '', retailPrice: '', inventoryId: '' });
       await loadItems();
       alert('تم تحديث الأسعار بنجاح');
     } catch (error: any) {
@@ -111,9 +128,36 @@ export default function ItemsPage() {
     return 0;
   };
 
-  const getLatestPrices = (item: any) => {
-    const wholesale = item.prices.find((p: any) => p.tier === 'WHOLESALE');
-    const retail = item.prices.find((p: any) => p.tier === 'RETAIL');
+  const getLatestPrices = (item: any, inventoryId?: string) => {
+    // Filter prices by inventory: prefer inventory-specific, fallback to global (inventoryId = null)
+    const pricesForInventory = item.prices.filter((p: any) => {
+      if (inventoryId) {
+        return p.inventoryId === inventoryId || p.inventoryId === null;
+      }
+      return true; // Show all prices if no inventory selected
+    });
+    
+    // Get latest prices (most recent validFrom) for each tier
+    const wholesale = pricesForInventory
+      .filter((p: any) => p.tier === 'WHOLESALE')
+      .sort((a: any, b: any) => {
+        // Prefer inventory-specific over global
+        if (a.inventoryId && !b.inventoryId) return -1;
+        if (!a.inventoryId && b.inventoryId) return 1;
+        // Then by validFrom
+        return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+      })[0];
+    
+    const retail = pricesForInventory
+      .filter((p: any) => p.tier === 'RETAIL')
+      .sort((a: any, b: any) => {
+        // Prefer inventory-specific over global
+        if (a.inventoryId && !b.inventoryId) return -1;
+        if (!a.inventoryId && b.inventoryId) return 1;
+        // Then by validFrom
+        return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+      })[0];
+    
     return { wholesale, retail };
   };
 
@@ -140,18 +184,40 @@ export default function ItemsPage() {
     },
     {
       key: 'wholesalePrice',
-      label: 'سعر الجملة',
+      label: selectedInventory ? `سعر الجملة (${inventories.find(i => i.id === selectedInventory)?.name || ''})` : 'سعر الجملة',
       render: (_: any, row: any) => {
-        const prices = getLatestPrices(row);
-        return prices.wholesale ? formatCurrency(prices.wholesale.price) : '-';
+        const prices = getLatestPrices(row, selectedInventory);
+        if (prices.wholesale) {
+          const isInventorySpecific = prices.wholesale.inventoryId === selectedInventory;
+          return (
+            <span className={isInventorySpecific ? 'font-semibold' : ''}>
+              {formatCurrency(prices.wholesale.price)}
+              {!isInventorySpecific && prices.wholesale.inventoryId === null && selectedInventory && (
+                <span className="text-xs text-gray-500 mr-1">(عام)</span>
+              )}
+            </span>
+          );
+        }
+        return '-';
       },
     },
     {
       key: 'retailPrice',
-      label: 'سعر القطاعي',
+      label: selectedInventory ? `سعر القطاعي (${inventories.find(i => i.id === selectedInventory)?.name || ''})` : 'سعر القطاعي',
       render: (_: any, row: any) => {
-        const prices = getLatestPrices(row);
-        return prices.retail ? formatCurrency(prices.retail.price) : '-';
+        const prices = getLatestPrices(row, selectedInventory);
+        if (prices.retail) {
+          const isInventorySpecific = prices.retail.inventoryId === selectedInventory;
+          return (
+            <span className={isInventorySpecific ? 'font-semibold' : ''}>
+              {formatCurrency(prices.retail.price)}
+              {!isInventorySpecific && prices.retail.inventoryId === null && selectedInventory && (
+                <span className="text-xs text-gray-500 mr-1">(عام)</span>
+              )}
+            </span>
+          );
+        }
+        return '-';
       },
     },
     {
@@ -197,11 +263,22 @@ export default function ItemsPage() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">الأصناف والأسعار</h1>
-        {(user?.role === 'PROCUREMENT' || user?.role === 'MANAGER') && (
-          <Button onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'إلغاء' : 'إضافة صنف جديد'}
-          </Button>
-        )}
+        <div className="flex gap-4 items-center">
+          <Select
+            label="المخزن"
+            value={selectedInventory}
+            onChange={(e) => setSelectedInventory(e.target.value)}
+            options={[
+              { value: '', label: 'جميع المخازن' },
+              ...inventories.map((inv) => ({ value: inv.id, label: inv.name })),
+            ]}
+          />
+          {(user?.role === 'PROCUREMENT' || user?.role === 'MANAGER') && (
+            <Button onClick={() => setShowForm(!showForm)}>
+              {showForm ? 'إلغاء' : 'إضافة صنف جديد'}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -281,6 +358,15 @@ export default function ItemsPage() {
       {editingPrices && (
         <Card className="mb-6">
           <h3 className="text-lg font-semibold mb-4">تعديل الأسعار</h3>
+          <Select
+            label="المخزن (اختياري - فارغ يعني جميع المخازن)"
+            value={priceData.inventoryId}
+            onChange={(e) => setPriceData({ ...priceData, inventoryId: e.target.value })}
+            options={[
+              { value: '', label: 'جميع المخازن (سعر عام)' },
+              ...inventories.map((inv) => ({ value: inv.id, label: inv.name })),
+            ]}
+          />
           <Input
             label="سعر الجملة الجديد"
             type="number"
@@ -308,7 +394,7 @@ export default function ItemsPage() {
               variant="secondary" 
               onClick={() => {
                 setEditingPrices(null);
-                setPriceData({ wholesalePrice: '', retailPrice: '' });
+                setPriceData({ wholesalePrice: '', retailPrice: '', inventoryId: '' });
               }}
               disabled={updatingPrices}
             >

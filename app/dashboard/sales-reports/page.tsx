@@ -17,6 +17,7 @@ export default function SalesReportsPage() {
   const { user } = useUser();
   const [reportData, setReportData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [inventories, setInventories] = useState<any[]>([]);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -28,8 +29,21 @@ export default function SalesReportsPage() {
   });
 
   useEffect(() => {
+    loadInventories();
+  }, []);
+
+  useEffect(() => {
     loadReports();
   }, []);
+
+  const loadInventories = async () => {
+    try {
+      const data = await api.getInventories();
+      setInventories(data);
+    } catch (error) {
+      console.error('Error loading inventories:', error);
+    }
+  };
 
   const loadReports = async () => {
     setLoading(true);
@@ -130,7 +144,7 @@ export default function SalesReportsPage() {
 
       {/* Filters */}
       <Card className="mb-6 print:hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               {filters.period === 'monthly' ? 'الشهر' : 'تاريخ البداية'}
@@ -171,6 +185,20 @@ export default function SalesReportsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
+              المخزن
+            </label>
+            <Select
+              value={filters.inventoryId}
+              onChange={(e) => handleFilterChange('inventoryId', e.target.value)}
+              options={[
+                { value: '', label: 'جميع المخازن' },
+                ...inventories.map((inv) => ({ value: inv.id, label: inv.name })),
+              ]}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               القسم
             </label>
             <Select
@@ -178,8 +206,8 @@ export default function SalesReportsPage() {
               onChange={(e) => handleFilterChange('section', e.target.value)}
               options={[
                 { value: '', label: 'جميع الأقسام' },
-                { value: 'GROCERY', label: sectionLabels.GROCERY },
-                { value: 'BAKERY', label: sectionLabels.BAKERY },
+                { value: 'GROCERY', label: 'بقالات' },
+                { value: 'BAKERY', label: 'أفران' },
               ]}
             />
           </div>
