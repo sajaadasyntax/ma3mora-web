@@ -7,8 +7,9 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Select from '@/components/Select';
+import MultiSelect from '@/components/MultiSelect';
 import Table from '@/components/Table';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate, paymentMethodLabels } from '@/lib/utils';
 import StockInfoTable from '@/components/StockInfoTable';
 import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
@@ -16,7 +17,7 @@ export default function SupplierReportPage() {
   const router = useRouter();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [supplierId, setSupplierId] = useState('');
+  const [supplierIds, setSupplierIds] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,7 +51,7 @@ export default function SupplierReportPage() {
         startDate: startDate ? new Date(startDate).toISOString().split('T')[0] : undefined,
         endDate: endDate ? new Date(endDate).toISOString().split('T')[0] : undefined,
       };
-      if (supplierId) params.supplierId = supplierId;
+      if (supplierIds.length > 0) params.supplierIds = supplierIds.join(',');
       if (paymentMethod) params.paymentMethod = paymentMethod;
 
       // Ensure aggregators are updated before loading report
@@ -118,6 +119,14 @@ export default function SupplierReportPage() {
       render: (value: string) => new Date(value).toLocaleDateString('ar-EG')
     },
     { key: 'supplier', label: 'المورد' },
+    {
+      key: 'items',
+      label: 'الأصناف',
+      render: (value: any[], row: any) => {
+        if (!value || value.length === 0) return '-';
+        return value.map(item => `${item.itemName}(${parseFloat(item.quantity).toFixed(2)})`).join(' + ');
+      }
+    },
     { 
       key: 'total', 
       label: 'الإجمالي',
@@ -132,6 +141,22 @@ export default function SupplierReportPage() {
       key: 'outstanding', 
       label: 'المتبقي',
       render: (value: string) => formatCurrency(parseFloat(value))
+    },
+    {
+      key: 'payments',
+      label: 'المدفوعات',
+      render: (value: any[], row: any) => {
+        if (!value || value.length === 0) return '-';
+        return (
+          <div className="space-y-1">
+            {value.map((payment, index) => (
+              <div key={index} className="text-sm">
+                {formatCurrency(parseFloat(payment.amount))} ({paymentMethodLabels[payment.method] || payment.method}) - {formatDate(payment.paidAt)}
+              </div>
+            ))}
+          </div>
+        );
+      }
     },
     { 
       key: 'paymentStatus', 
@@ -176,14 +201,11 @@ export default function SupplierReportPage() {
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
           />
-          <Select
-            label="المورد"
-            value={supplierId}
-            onChange={(e) => setSupplierId(e.target.value)}
-            options={[
-              { value: '', label: 'الكل' },
-              ...suppliers.map((s) => ({ value: s.id, label: s.name })),
-            ]}
+          <MultiSelect
+            label="الموردين"
+            options={suppliers.map((s) => ({ value: s.id, label: s.name }))}
+            selectedValues={supplierIds}
+            onChange={setSupplierIds}
           />
           <Select
             label="طريقة الدفع"

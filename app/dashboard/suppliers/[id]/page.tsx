@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Table from '@/components/Table';
-import { formatCurrency, formatDateTime, procOrderStatusLabels, sectionLabels } from '@/lib/utils';
+import { formatCurrency, formatDateTime, formatDate, procOrderStatusLabels, sectionLabels, paymentMethodLabels } from '@/lib/utils';
 
 interface PageProps {
   params: {

@@ -57,6 +57,7 @@ export const paymentMethodLabels: Record<string, string> = {
   CASH: 'كاش',
   BANK: 'بنكك',
   BANK_NILE: 'بنك النيل',
+  COMMISSION: 'عمولة',
 };
 
 export const paymentStatusLabels: Record<string, string> = {
