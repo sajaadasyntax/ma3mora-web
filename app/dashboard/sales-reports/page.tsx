@@ -430,7 +430,7 @@ export default function SalesReportsPage() {
                   {
                     key: 'serial',
                     label: 'ترقيم',
-                    render: (_: any, row: any, index: number) => index + 1
+                    render: (_: any, row: any, index?: number) => (index !== undefined ? index + 1 : '-')
                   },
                   { 
                     key: 'itemName', 
