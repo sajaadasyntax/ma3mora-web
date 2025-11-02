@@ -9,7 +9,7 @@ import Input from '@/components/Input';
 import Select from '@/components/Select';
 import MultiSelect from '@/components/MultiSelect';
 import Table from '@/components/Table';
-import { formatCurrency, formatDate, paymentMethodLabels } from '@/lib/utils';
+import { formatCurrency, formatDate, formatNumber, paymentMethodLabels } from '@/lib/utils';
 import StockInfoTable from '@/components/StockInfoTable';
 import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
@@ -124,7 +124,12 @@ export default function SupplierReportPage() {
       label: 'الأصناف',
       render: (value: any[], row: any) => {
         if (!value || value.length === 0) return '-';
-        return value.map(item => `${item.itemName}(${parseFloat(item.quantity).toFixed(2)})`).join(' + ');
+        return value.map(item => {
+          const qty = parseFloat(item.quantity);
+          // Format quantity: remove trailing zeros if whole number, otherwise show decimals
+          const formattedQty = qty % 1 === 0 ? qty.toString() : qty.toFixed(2).replace(/\.?0+$/, '');
+          return `${item.itemName}(${formattedQty})`;
+        }).join(' + ');
       }
     },
     { 

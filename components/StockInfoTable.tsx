@@ -36,29 +36,24 @@ export default function StockInfoTable({ stockInfo }: StockInfoTableProps) {
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 الرصيد الختامي
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                التغيير
-              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {stockInfo.items.map((item) => {
-              const change = item.finalStock - item.initialStock;
+              // Format numbers: remove trailing zeros if whole number, otherwise show decimals
+              const formatStock = (value: number) => {
+                return value % 1 === 0 ? value.toString() : value.toFixed(2).replace(/\.?0+$/, '');
+              };
               return (
                 <tr key={item.itemId}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {item.itemName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.initialStock.toFixed(2)}
+                    {formatStock(item.initialStock)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {item.finalStock.toFixed(2)}
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                    change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-500'
-                  }`}>
-                    {change > 0 ? '+' : ''}{change.toFixed(2)}
+                    {formatStock(item.finalStock)}
                   </td>
                 </tr>
               );
