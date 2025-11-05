@@ -19,11 +19,7 @@ export default function SalesReportsPage() {
   const [loading, setLoading] = useState(false);
   const [inventories, setInventories] = useState<any[]>([]);
   const [filters, setFilters] = useState({
-    dateMode: 'single', // 'single' for single date, 'range' for date range
-    date: '', // Single date
-    startDate: '', // Range start
-    endDate: '', // Range end
-    period: 'daily',
+    date: '', // Single date only
     inventoryId: '',
     section: '',
     paymentMethod: '',
@@ -52,40 +48,12 @@ export default function SalesReportsPage() {
     setLoading(true);
     try {
       const params: any = {};
-      let dateStart: string | null = null;
-      let dateEnd: string | null = null;
       
-      if (filters.period === 'monthly') {
-        // Expect startDate as YYYY-MM when monthly; compute endDate as month end
-        if (filters.startDate) {
-          const [year, month] = filters.startDate.split('-');
-          const end = new Date(Number(year), Number(month), 0); // last day of month
-          const startISO = `${year}-${month}-01`;
-          const endISO = end.toISOString().split('T')[0];
-          params.startDate = startISO;
-          params.endDate = endISO;
-          dateStart = startISO;
-          dateEnd = endISO;
-        }
-        params.period = 'monthly';
-      } else if (filters.dateMode === 'single' && filters.date) {
-        // Single date mode - use the new 'date' parameter
+      // Single date only
+      if (filters.date) {
         params.date = filters.date;
-        dateStart = filters.date;
-        dateEnd = filters.date;
-        if (filters.period) params.period = filters.period;
-      } else {
-        // Date range mode
-        if (filters.startDate) {
-          params.startDate = filters.startDate;
-          dateStart = filters.startDate;
-        }
-        if (filters.endDate) {
-          params.endDate = filters.endDate;
-          dateEnd = filters.endDate;
-        }
-        if (filters.period) params.period = filters.period;
       }
+      
       if (filters.inventoryId) params.inventoryId = filters.inventoryId;
       if (filters.section) params.section = filters.section;
       if (filters.paymentMethod) params.paymentMethod = filters.paymentMethod;
@@ -94,11 +62,13 @@ export default function SalesReportsPage() {
       console.log('Loading sales reports with params:', params);
 
       // Ensure aggregators are updated before loading report
-      await ensureAggregatorsUpdated(dateStart, dateEnd, {
-        inventoryId: filters.inventoryId || undefined,
-        section: filters.section || undefined,
-        silent: true,
-      });
+      if (filters.date) {
+        await ensureAggregatorsUpdated(filters.date, filters.date, {
+          inventoryId: filters.inventoryId || undefined,
+          section: filters.section || undefined,
+          silent: true,
+        });
+      }
 
       const data = await api.getSalesReports(params);
       console.log('Sales reports API response:', data);
@@ -113,33 +83,15 @@ export default function SalesReportsPage() {
   };
 
   const handleFilterChange = (key: string, value: string) => {
-    // When switching period, normalize date inputs
-    if (key === 'period') {
-      if (value === 'monthly') {
-        // Clear endDate; startDate will be month (YYYY-MM)
-        setFilters(prev => ({ ...prev, period: value, endDate: '' }));
-        return;
-      } else {
-        setFilters(prev => ({ ...prev, period: value }));
-        return;
-      }
-    }
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
   const handleApplyFilters = () => {
     // Validate required fields for items viewType
     if (filters.viewType === 'items') {
-      if (filters.dateMode === 'single') {
-        if (!filters.date) {
-          alert('يرجى تحديد التاريخ لعرض تقرير حركة المخزون');
-          return;
-        }
-      } else {
-        if (!filters.startDate || !filters.endDate) {
-          alert('يرجى تحديد تاريخ البداية وتاريخ النهاية لعرض تقرير حركة المخزون');
-          return;
-        }
+      if (!filters.date) {
+        alert('يرجى تحديد التاريخ لعرض تقرير حركة المخزون');
+        return;
       }
       if (!filters.inventoryId) {
         alert('يرجى تحديد المخزن لعرض تقرير حركة المخزون');
@@ -151,11 +103,7 @@ export default function SalesReportsPage() {
 
   const handleResetFilters = () => {
     setFilters({
-      dateMode: 'single',
       date: '',
-      startDate: '',
-      endDate: '',
-      period: 'daily',
       inventoryId: '',
       section: '',
       paymentMethod: '',
@@ -179,71 +127,15 @@ export default function SalesReportsPage() {
 
       {/* Filters */}
       <Card className="mb-6 print:hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-8 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              نطاق التاريخ
+              التاريخ
             </label>
-            <Select
-              value={filters.dateMode}
-              onChange={(e) => handleFilterChange('dateMode', e.target.value)}
-              options={[
-                { value: 'single', label: 'يوم واحد' },
-                { value: 'range', label: 'نطاق زمني' },
-              ]}
-            />
-          </div>
-
-          {filters.dateMode === 'single' ? (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                التاريخ
-              </label>
-              <Input
-                type="date"
-                value={filters.date}
-                onChange={(e) => handleFilterChange('date', e.target.value)}
-              />
-            </div>
-          ) : (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {filters.period === 'monthly' ? 'الشهر' : 'تاريخ البداية'}
-                </label>
-                <Input
-                  type={filters.period === 'monthly' ? 'month' : 'date'}
-                  value={filters.startDate}
-                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                />
-              </div>
-
-              {filters.period !== 'monthly' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    تاريخ النهاية
-                  </label>
-                  <Input
-                    type="date"
-                    value={filters.endDate}
-                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                  />
-                </div>
-              )}
-            </>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              الفترة
-            </label>
-            <Select
-              value={filters.period}
-              onChange={(e) => handleFilterChange('period', e.target.value)}
-              options={[
-                { value: 'daily', label: 'يومي' },
-                { value: 'monthly', label: 'شهري' },
-              ]}
+            <Input
+              type="date"
+              value={filters.date}
+              onChange={(e) => handleFilterChange('date', e.target.value)}
             />
           </div>
 
