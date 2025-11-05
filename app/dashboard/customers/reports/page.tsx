@@ -161,19 +161,19 @@ export default function CustomerReportPage() {
         // Check if there are multiple payment methods in payments
         if (row.payments && row.payments.length > 0) {
           const paymentMethods = row.payments.map((p: any) => p.method);
-          const uniqueMethods = [...new Set(paymentMethods)];
+          const uniqueMethods = [...new Set(paymentMethods)] as string[];
           
           if (uniqueMethods.length > 1) {
             // Multiple payment methods
-            return uniqueMethods.map(method => methods[method] || method).join(' + ');
+            return uniqueMethods.map(method => methods[method as keyof typeof methods] || method).join(' + ');
           } else if (uniqueMethods.length === 1) {
             // Single payment method from payments
-            return methods[uniqueMethods[0]] || uniqueMethods[0];
+            return methods[uniqueMethods[0] as keyof typeof methods] || uniqueMethods[0];
           }
         }
         
         // Fallback to invoice payment method
-        return methods[value] || value;
+        return methods[value as keyof typeof methods] || value;
       }
     },
     { 
