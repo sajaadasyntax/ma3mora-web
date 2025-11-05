@@ -80,7 +80,7 @@ export default function CloseBalancePage() {
     return <div className="text-center py-8">جاري التحميل...</div>;
   }
 
-  const profit = parseFloat(balance.sales.received) - 
+  const profit = (parseFloat(balance.sales.received) + parseFloat(balance.income?.total || 0)) - 
     (parseFloat(balance.procurement.total) + parseFloat(balance.expenses.total));
 
   return (

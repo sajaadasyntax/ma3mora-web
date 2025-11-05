@@ -116,6 +116,18 @@ export default function BalanceSessionsPage() {
                   </p>
                 </div>
 
+                {session.summary.income && parseFloat(session.summary.income.total) > 0 && (
+                  <div className="bg-emerald-50 p-4 rounded-lg">
+                    <h4 className="text-sm font-semibold text-emerald-800 mb-1">الإيرادات الأخرى</h4>
+                    <p className="text-xl font-bold text-emerald-600">
+                      {formatCurrency(session.summary.income.total)}
+                    </p>
+                    <p className="text-xs text-emerald-700">
+                      {formatNumber(session.summary.income.count)} إيراد
+                    </p>
+                  </div>
+                )}
+
                 <div className={`p-4 rounded-lg ${
                   parseFloat(session.summary.profit) >= 0 ? 'bg-purple-50' : 'bg-orange-50'
                 }`}>

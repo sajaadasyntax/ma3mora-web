@@ -165,6 +165,12 @@ export default function AccountingPage() {
           <p className="text-sm mt-2">{balance.expenses?.count || 0} منصرف</p>
         </Card>
 
+        <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+          <h3 className="text-lg font-semibold mb-2">الإيرادات الأخرى</h3>
+          <p className="text-3xl font-bold">{formatCurrency(balance.income?.total || 0)}</p>
+          <p className="text-sm mt-2">{balance.income?.count || 0} إيراد</p>
+        </Card>
+
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
           <h3 className="text-lg font-semibold mb-2">الرصيد الصافي</h3>
           <p className="text-3xl font-bold">{formatCurrency(balance.balance?.net || 0)}</p>

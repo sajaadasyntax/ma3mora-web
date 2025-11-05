@@ -36,6 +36,8 @@ export function formatNumber(num: number | string): string {
 export const roleLabels: Record<string, string> = {
   SALES_GROCERY: 'مبيعات - بقالة',
   SALES_BAKERY: 'مبيعات - أفران',
+  AGENT_GROCERY: 'وكيل - بقالة',
+  AGENT_BAKERY: 'وكيل - أفران',
   INVENTORY: 'أمين مخزن',
   PROCUREMENT: 'مشتريات',
   ACCOUNTANT: 'محاسب',
@@ -51,6 +53,7 @@ export const sectionLabels: Record<string, string> = {
 export const customerTypeLabels: Record<string, string> = {
   WHOLESALE: 'جملة',
   RETAIL: 'قطاعي',
+  AGENT: 'وكيل',
 };
 
 export const paymentMethodLabels: Record<string, string> = {

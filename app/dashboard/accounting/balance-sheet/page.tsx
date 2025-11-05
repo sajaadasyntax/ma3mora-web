@@ -35,7 +35,7 @@ export default function BalanceSheetPage() {
 
   const calculateProfit = () => {
     if (!balance) return 0;
-    const totalRevenue = parseFloat(balance.sales.received);
+    const totalRevenue = parseFloat(balance.sales.received) + parseFloat(balance.income?.total || 0);
     const totalCosts = parseFloat(balance.procurement.total) + parseFloat(balance.expenses.total);
     return totalRevenue - totalCosts;
   };
@@ -138,6 +138,20 @@ export default function BalanceSheetPage() {
                 <span className="text-gray-600">المتبقي (ذمم):</span>
                 <span className="text-orange-600">{formatCurrency(balance.sales.debt)}</span>
               </div>
+              {balance.income && parseFloat(balance.income.total) > 0 && (
+                <>
+                  <div className="flex justify-between border-t pt-2 mt-2">
+                    <span className="text-gray-700">إيرادات أخرى:</span>
+                    <span className="font-bold text-emerald-600">
+                      {formatCurrency(balance.income.total)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">عدد الإيرادات:</span>
+                    <span className="text-sm">{balance.income.count} إيراد</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
