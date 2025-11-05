@@ -178,7 +178,7 @@ export default function AccountingPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <Card title="التقارير المالية">
           <div className="space-y-2">
             <a
@@ -228,29 +228,6 @@ export default function AccountingPage() {
               className="block px-4 py-2 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white rounded text-center font-semibold"
             >
               🏦 المعاملات البنكية
-            </a>
-          </div>
-        </Card>
-
-        <Card title="روابط سريعة">
-          <div className="space-y-2">
-            <a
-              href="/dashboard/sales"
-              className="block px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded"
-            >
-              فواتير المبيعات
-            </a>
-            <a
-              href="/dashboard/procurement"
-              className="block px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded"
-            >
-              أوامر الشراء
-            </a>
-            <a
-              href="/dashboard/items"
-              className="block px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded"
-            >
-              إدارة الأسعار
             </a>
           </div>
         </Card>
