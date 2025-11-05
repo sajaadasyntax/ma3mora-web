@@ -518,9 +518,11 @@ export default function SalesReportsPage() {
             <Card key={index}>
               <div className="border-b pb-4 mb-4">
                 <h3 className="text-xl font-semibold text-gray-900">
-                  {filters.period === 'daily' 
+                  {periodData.date 
                     ? formatDateTime(periodData.date)
-                    : `${periodData.month}`
+                    : periodData.month 
+                      ? `${periodData.month}`
+                      : 'تقرير المبيعات'
                   }
                 </h3>
                 <div className="flex gap-6 mt-2 text-sm text-gray-600">
