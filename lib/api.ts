@@ -233,6 +233,15 @@ export const api = {
       body: JSON.stringify(data),
     }),
   
+  getIncome: (params?: any) =>
+    fetchAPI('/accounting/income', { params }),
+  
+  createIncome: (data: any) =>
+    fetchAPI('/accounting/income', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
   getOpeningBalances: (params?: any) =>
     fetchAPI('/accounting/opening-balances', { params }),
   

@@ -1056,17 +1056,20 @@ export function generateSalesReportPDF(reportData: any, filters: any) {
     day: 'numeric'
   });
 
-  const periodLabel = filters.period === 'monthly' ? 'شهري' : 'يومي';
-  const dateRange = filters.startDate && filters.endDate 
-    ? `${filters.startDate} - ${filters.endDate}`
-    : 'جميع التواريخ';
+  const dateLabel = filters.date 
+    ? new Date(filters.date).toLocaleDateString('ar-SD', { year: 'numeric', month: 'long', day: 'numeric' })
+    : 'لم يتم تحديد التاريخ';
 
+  // Check if this is an items report (stock movements)
+  const isItemsReport = reportData.data[0]?.itemName !== undefined;
+  
   let htmlContent = `
     <div class="header">
-      <h1>تقرير المبيعات ${periodLabel}</h1>
-      <div class="date">تاريخ التقرير: ${currentDate} | الفترة: ${dateRange}</div>
+      <h1>تقرير المبيعات</h1>
+      <div class="date">تاريخ التقرير: ${currentDate} | التاريخ: ${dateLabel}</div>
     </div>
 
+    ${reportData.summary ? `
     <div class="section">
       <h2>ملخص التقرير</h2>
       <table>
@@ -1096,12 +1099,50 @@ export function generateSalesReportPDF(reportData: any, filters: any) {
         </tbody>
       </table>
     </div>
+    ` : ''}
   `;
 
-  reportData.data.forEach((periodData: any) => {
-    const periodTitle = filters.period === 'daily' 
-      ? formatDate(periodData.date)
-      : periodData.month;
+  // Handle items report (stock movements)
+  if (isItemsReport) {
+    htmlContent += `
+      <div class="section">
+        <h2>حركة المخزون</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ترقيم</th>
+              <th>الصنف</th>
+              <th>رصيد افتتاحي</th>
+              <th>منصرف</th>
+              <th>هدية منصرف</th>
+              <th>وارد</th>
+              <th>هدية وارد</th>
+              <th>رصيد ختامي</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportData.data.map((item: any, index: number) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${item.itemName}</td>
+                <td>${item.openingBalance}</td>
+                <td>${item.outgoing}</td>
+                <td>${item.outgoingGifts}</td>
+                <td>${item.incoming}</td>
+                <td>${item.incomingGifts}</td>
+                <td>${item.closingBalance}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } else {
+    // Handle grouped/invoice reports
+    reportData.data.forEach((periodData: any) => {
+      const periodTitle = periodData.date 
+        ? formatDate(periodData.date)
+        : 'فترة غير محددة';
 
     htmlContent += `
       <div class="section">
@@ -1197,7 +1238,8 @@ export function generateSalesReportPDF(reportData: any, filters: any) {
         ` : ''}
       </div>
     `;
-  });
+    });
+  }
 
   htmlContent += `
     <div class="footer">

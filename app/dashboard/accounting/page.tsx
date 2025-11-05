@@ -209,7 +209,13 @@ export default function AccountingPage() {
               href="/dashboard/accounting/expenses"
             className="block px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded text-center font-semibold"
             >
-              المنصرفات
+              💸 المنصرفات
+            </a>
+            <a
+              href="/dashboard/accounting/income"
+              className="block px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded text-center font-semibold"
+            >
+              💰 الإيرادات الأخرى
             </a>
             <a
               href="/dashboard/accounting/bank-transactions"

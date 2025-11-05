@@ -87,17 +87,18 @@ export default function SalesReportsPage() {
   };
 
   const handleApplyFilters = () => {
-    // Validate required fields for items viewType
-    if (filters.viewType === 'items') {
-      if (!filters.date) {
-        alert('يرجى تحديد التاريخ لعرض تقرير حركة المخزون');
-        return;
-      }
-      if (!filters.inventoryId) {
-        alert('يرجى تحديد المخزن لعرض تقرير حركة المخزون');
-        return;
-      }
+    // Validate date is always required
+    if (!filters.date) {
+      alert('يرجى تحديد التاريخ');
+      return;
     }
+    
+    // For items viewType (stock movements), inventory is required
+    if (filters.viewType === 'items' && !filters.inventoryId) {
+      alert('يرجى تحديد المخزن لعرض تقرير حركة المخزون');
+      return;
+    }
+    
     loadReports();
   };
 

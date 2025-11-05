@@ -10,7 +10,6 @@ import Select from '@/components/Select';
 import MultiSelect from '@/components/MultiSelect';
 import Table from '@/components/Table';
 import { formatCurrency, sectionLabels } from '@/lib/utils';
-import StockInfoTable from '@/components/StockInfoTable';
 import { ensureAggregatorsUpdated } from '@/lib/aggregatorUtils';
 
 export default function CustomerReportPage() {
@@ -25,7 +24,6 @@ export default function CustomerReportPage() {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<any[]>([]);
   const [summary, setSummary] = useState<any | null>(null);
-  const [stockInfo, setStockInfo] = useState<any | null>(null);
 
   useEffect(() => {
     loadCustomers();
@@ -67,7 +65,6 @@ export default function CustomerReportPage() {
       const data = await api.getCustomerReport(params);
       setReport(data?.data || []);
       setSummary(data?.summary || null);
-      setStockInfo(data?.stockInfo || null);
     } catch (error: any) {
       console.error('Error fetching customer report:', error);
       alert(error?.error || error?.message || 'فشل تحميل التقرير');
@@ -131,15 +128,51 @@ export default function CustomerReportPage() {
       label: 'نوع العميل',
       render: (value: string) => value === 'WHOLESALE' ? 'جملة' : value === 'RETAIL' ? 'قطاعي' : value
     },
+    {
+      key: 'items',
+      label: 'الأصناف',
+      render: (value: any[]) => {
+        if (!value || value.length === 0) return '-';
+        return (
+          <div className="space-y-1">
+            {value.map((item, index) => {
+              const qty = parseFloat(item.quantity);
+              const formattedQty = qty % 1 === 0 ? qty.toString() : qty.toFixed(2).replace(/\.?0+$/, '');
+              return (
+                <div key={index} className="text-sm">
+                  {item.itemName} ({formattedQty})
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+    },
     { 
       key: 'paymentMethod', 
       label: 'طريقة الدفع',
-      render: (value: string) => {
+      render: (value: string, row: any) => {
         const methods: Record<string, string> = {
           'CASH': 'كاش',
           'BANK': 'بنكك',
           'BANK_NILE': 'بنك النيل'
         };
+        
+        // Check if there are multiple payment methods in payments
+        if (row.payments && row.payments.length > 0) {
+          const paymentMethods = row.payments.map((p: any) => p.method);
+          const uniqueMethods = [...new Set(paymentMethods)];
+          
+          if (uniqueMethods.length > 1) {
+            // Multiple payment methods
+            return uniqueMethods.map(method => methods[method] || method).join(' + ');
+          } else if (uniqueMethods.length === 1) {
+            // Single payment method from payments
+            return methods[uniqueMethods[0]] || uniqueMethods[0];
+          }
+        }
+        
+        // Fallback to invoice payment method
         return methods[value] || value;
       }
     },
@@ -268,9 +301,6 @@ export default function CustomerReportPage() {
           </div>
         </Card>
       )}
-
-      {/* Stock Information Summary */}
-      {stockInfo && <StockInfoTable stockInfo={stockInfo} />}
 
       <div id="customer-print-section">
         <Card>
