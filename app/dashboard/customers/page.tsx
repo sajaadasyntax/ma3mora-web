@@ -43,9 +43,9 @@ export default function CustomersPage() {
 
   const loadCustomers = async () => {
     try {
-      // Filter customers by division for sales users
+      // Filter customers by division for sales and agent users
       const params: any = {};
-      if (user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY') {
+      if (user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY' || user?.role === 'AGENT_GROCERY' || user?.role === 'AGENT_BAKERY') {
         params.division = getUserSection();
       }
       
@@ -80,7 +80,7 @@ export default function CustomersPage() {
     }
   };
 
-  // Hide division column for sales users since they only see their section
+  // Hide division column for sales and agent users since they only see their section
   const columns = [
     { key: 'name', label: 'اسم العميل' },
     {
@@ -88,7 +88,7 @@ export default function CustomersPage() {
       label: 'النوع',
       render: (value: string) => customerTypeLabels[value],
     },
-    ...(user?.role !== 'SALES_GROCERY' && user?.role !== 'SALES_BAKERY' ? [{
+    ...(user?.role !== 'SALES_GROCERY' && user?.role !== 'SALES_BAKERY' && user?.role !== 'AGENT_GROCERY' && user?.role !== 'AGENT_BAKERY' ? [{
       key: 'division',
       label: 'القسم',
       render: (value: string) => sectionLabels[value],
@@ -109,7 +109,7 @@ export default function CustomersPage() {
             تقرير العملاء
           </Button>
         </div>
-        {(user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY') && (
+        {(user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY' || user?.role === 'AGENT_GROCERY' || user?.role === 'AGENT_BAKERY') && (
           <Button onClick={() => setShowForm(!showForm)}>
             {showForm ? 'إلغاء' : 'إضافة عميل جديد'}
           </Button>
@@ -136,8 +136,8 @@ export default function CustomersPage() {
               ]}
             />
 
-            {/* Hide section selector for sales users - they can only access their assigned section */}
-            {user?.role !== 'SALES_GROCERY' && user?.role !== 'SALES_BAKERY' ? (
+            {/* Hide section selector for sales and agent users - they can only access their assigned section */}
+            {user?.role !== 'SALES_GROCERY' && user?.role !== 'SALES_BAKERY' && user?.role !== 'AGENT_GROCERY' && user?.role !== 'AGENT_BAKERY' ? (
               <Select
                 label="القسم"
                 value={formData.division}

@@ -113,7 +113,7 @@ export default function SalesPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">فواتير المبيعات</h1>
         <div className="flex gap-2">
-          {(user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY' || user?.role === 'INVENTORY' || user?.role === 'MANAGER') && (
+          {(user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY' || user?.role === 'AGENT_GROCERY' || user?.role === 'AGENT_BAKERY' || user?.role === 'INVENTORY' || user?.role === 'MANAGER') && (
             <Button 
               variant="secondary"
               onClick={() => router.push('/dashboard/sales/daily-by-item')}
@@ -121,7 +121,7 @@ export default function SalesPage() {
               📊 تقرير المبيعات اليومي
             </Button>
           )}
-          {(user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY') && (
+          {(user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY' || user?.role === 'AGENT_GROCERY' || user?.role === 'AGENT_BAKERY') && (
             <Button onClick={() => router.push('/dashboard/sales/new')}>
               إنشاء فاتورة جديدة
             </Button>

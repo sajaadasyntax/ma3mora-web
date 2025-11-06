@@ -192,8 +192,8 @@ export default function NewSalesInvoicePage() {
               required
             />
 
-            {/* Hide section selector for sales users - they can only access their assigned section */}
-            {user?.role !== 'SALES_GROCERY' && user?.role !== 'SALES_BAKERY' ? (
+            {/* Hide section selector for sales and agent users - they can only access their assigned section */}
+            {user?.role !== 'SALES_GROCERY' && user?.role !== 'SALES_BAKERY' && user?.role !== 'AGENT_GROCERY' && user?.role !== 'AGENT_BAKERY' ? (
               <Select
                 label="القسم"
                 value={formData.section}

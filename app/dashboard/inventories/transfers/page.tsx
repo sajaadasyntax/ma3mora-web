@@ -35,7 +35,7 @@ export default function InventoryTransfersPage() {
     itemId: '',
   });
 
-  const canEdit = user?.role === 'MANAGER' || user?.role === 'INVENTORY' || user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY';
+  const canEdit = user?.role === 'MANAGER' || user?.role === 'INVENTORY' || user?.role === 'SALES_GROCERY' || user?.role === 'SALES_BAKERY' || user?.role === 'AGENT_GROCERY' || user?.role === 'AGENT_BAKERY';
 
   const loadData = async () => {
     try {
