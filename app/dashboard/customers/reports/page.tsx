@@ -236,6 +236,7 @@ export default function CustomerReportPage() {
               { value: '', label: 'الكل' },
               { value: 'WHOLESALE', label: 'جملة' },
               { value: 'RETAIL', label: 'قطاعي' },
+              { value: 'AGENT', label: 'وكيل' },
             ]}
           />
           <MultiSelect

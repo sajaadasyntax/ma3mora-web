@@ -21,8 +21,8 @@ export default function NewSalesInvoicePage() {
 
   // Determine section based on user role
   const getUserSection = () => {
-    if (user?.role === 'SALES_GROCERY') return 'GROCERY';
-    if (user?.role === 'SALES_BAKERY') return 'BAKERY';
+    if (user?.role === 'SALES_GROCERY' || user?.role === 'AGENT_GROCERY') return 'GROCERY';
+    if (user?.role === 'SALES_BAKERY' || user?.role === 'AGENT_BAKERY') return 'BAKERY';
     return 'GROCERY'; // Default
   };
 

@@ -21,8 +21,8 @@ export default function CustomersPage() {
 
   // Determine section based on user role
   const getUserSection = () => {
-    if (user?.role === 'SALES_GROCERY') return 'GROCERY';
-    if (user?.role === 'SALES_BAKERY') return 'BAKERY';
+    if (user?.role === 'SALES_GROCERY' || user?.role === 'AGENT_GROCERY') return 'GROCERY';
+    if (user?.role === 'SALES_BAKERY' || user?.role === 'AGENT_BAKERY') return 'BAKERY';
     return 'GROCERY'; // Default
   };
 
@@ -130,10 +130,18 @@ export default function CustomersPage() {
               label="نوع العميل"
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-              options={[
-                { value: 'WHOLESALE', label: 'جملة' },
-                { value: 'RETAIL', label: 'قطاعي' },
-              ]}
+              options={
+                user?.role === 'AGENT_GROCERY' || user?.role === 'AGENT_BAKERY'
+                  ? [
+                      { value: 'AGENT', label: 'وكيل' },
+                      { value: 'WHOLESALE', label: 'جملة' },
+                      { value: 'RETAIL', label: 'قطاعي' },
+                    ]
+                  : [
+                      { value: 'WHOLESALE', label: 'جملة' },
+                      { value: 'RETAIL', label: 'قطاعي' },
+                    ]
+              }
             />
 
             {/* Hide section selector for sales and agent users - they can only access their assigned section */}
