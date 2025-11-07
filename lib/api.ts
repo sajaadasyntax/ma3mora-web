@@ -241,6 +241,18 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  payInboundDebt: (id: string, data: { method: string }) =>
+    fetchAPI(`/accounting/income/${id}/pay-debt`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  payOutboundDebt: (id: string, data: { method: string }) =>
+    fetchAPI(`/accounting/expenses/${id}/pay-debt`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   
   getOpeningBalances: (params?: any) =>
     fetchAPI('/accounting/opening-balances', { params }),

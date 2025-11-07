@@ -12,6 +12,7 @@ export default function LiquidCashPage() {
   const router = useRouter();
   const [liquidData, setLiquidData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [payingDebt, setPayingDebt] = useState<string | null>(null);
 
   useEffect(() => {
     loadLiquidCash();
@@ -25,6 +26,40 @@ export default function LiquidCashPage() {
       console.error('Error loading liquid cash:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePayInboundDebt = async (debtId: string, method: string) => {
+    if (!confirm(`هل تريد تسجيل استلام هذا الدين عبر ${paymentMethodLabels[method]}؟`)) {
+      return;
+    }
+
+    setPayingDebt(debtId);
+    try {
+      await api.payInboundDebt(debtId, { method });
+      alert('✅ تم تسجيل استلام الدين بنجاح!');
+      await loadLiquidCash();
+    } catch (error: any) {
+      alert(error.message || 'فشل تسجيل استلام الدين');
+    } finally {
+      setPayingDebt(null);
+    }
+  };
+
+  const handlePayOutboundDebt = async (debtId: string, method: string) => {
+    if (!confirm(`هل تريد سداد هذا الدين عبر ${paymentMethodLabels[method]}؟`)) {
+      return;
+    }
+
+    setPayingDebt(debtId);
+    try {
+      await api.payOutboundDebt(debtId, { method });
+      alert('✅ تم سداد الدين بنجاح!');
+      await loadLiquidCash();
+    } catch (error: any) {
+      alert(error.message || 'فشل سداد الدين');
+    } finally {
+      setPayingDebt(null);
     }
   };
 
@@ -113,6 +148,115 @@ export default function LiquidCashPage() {
               الفرق بين الديون الواردة والصادرة
             </p>
           </Card>
+        </div>
+      )}
+
+      {/* Debt Details */}
+      {liquidData.debts && (liquidData.debts.inbound.count > 0 || liquidData.debts.outbound.count > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Inbound Debts */}
+          {liquidData.debts.inbound.count > 0 && (
+            <Card>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">
+                الديون الواردة (لنا) - {liquidData.debts.inbound.count}
+              </h2>
+              
+              <div className="space-y-3">
+                {liquidData.debts.inbound.items.map((debt: any) => (
+                  <div key={debt.id} className="bg-teal-50 p-4 rounded-lg border border-teal-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{debt.description}</p>
+                        <p className="text-sm text-gray-600">{formatDateTime(debt.createdAt)}</p>
+                      </div>
+                      <span className="text-lg font-bold text-teal-600">
+                        {formatCurrency(debt.amount)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        size="small"
+                        onClick={() => handlePayInboundDebt(debt.id, 'CASH')}
+                        disabled={payingDebt === debt.id}
+                        className="bg-green-600 hover:bg-green-700 text-xs"
+                      >
+                        {payingDebt === debt.id ? 'جاري...' : '💵 كاش'}
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => handlePayInboundDebt(debt.id, 'BANK')}
+                        disabled={payingDebt === debt.id}
+                        className="bg-blue-600 hover:bg-blue-700 text-xs"
+                      >
+                        {payingDebt === debt.id ? 'جاري...' : '🏦 بنكك'}
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => handlePayInboundDebt(debt.id, 'BANK_NILE')}
+                        disabled={payingDebt === debt.id}
+                        className="bg-purple-600 hover:bg-purple-700 text-xs"
+                      >
+                        {payingDebt === debt.id ? 'جاري...' : '🏦 بنك النيل'}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Outbound Debts */}
+          {liquidData.debts.outbound.count > 0 && (
+            <Card>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">
+                الديون الصادرة (علينا) - {liquidData.debts.outbound.count}
+              </h2>
+              
+              <div className="space-y-3">
+                {liquidData.debts.outbound.items.map((debt: any) => (
+                  <div key={debt.id} className="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">{debt.description}</p>
+                        <p className="text-sm text-gray-600">{formatDateTime(debt.createdAt)}</p>
+                      </div>
+                      <span className="text-lg font-bold text-red-600">
+                        {formatCurrency(debt.amount)}
+                      </span>
+                    </div>
+                    
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        size="small"
+                        onClick={() => handlePayOutboundDebt(debt.id, 'CASH')}
+                        disabled={payingDebt === debt.id}
+                        className="bg-green-600 hover:bg-green-700 text-xs"
+                      >
+                        {payingDebt === debt.id ? 'جاري...' : '💵 دفع كاش'}
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => handlePayOutboundDebt(debt.id, 'BANK')}
+                        disabled={payingDebt === debt.id}
+                        className="bg-blue-600 hover:bg-blue-700 text-xs"
+                      >
+                        {payingDebt === debt.id ? 'جاري...' : '🏦 دفع بنكك'}
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => handlePayOutboundDebt(debt.id, 'BANK_NILE')}
+                        disabled={payingDebt === debt.id}
+                        className="bg-purple-600 hover:bg-purple-700 text-xs"
+                      >
+                        {payingDebt === debt.id ? 'جاري...' : '🏦 دفع بنك النيل'}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
       )}
 
