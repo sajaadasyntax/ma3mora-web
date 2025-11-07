@@ -387,5 +387,25 @@ export const api = {
   
   getStockBatches: (inventoryId: string, itemId: string) =>
     fetchAPI(`/inventories/${inventoryId}/stocks/${itemId}/batches`),
+
+  // User Management (Developer Panel)
+  getUsers: () => fetchAPI('/users'),
+  
+  createUser: (data: any) =>
+    fetchAPI('/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  deleteUser: (id: string) =>
+    fetchAPI(`/users/${id}`, {
+      method: 'DELETE',
+    }),
+  
+  updateUserPassword: (id: string, password: string) =>
+    fetchAPI(`/users/${id}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ password }),
+    }),
 };
 

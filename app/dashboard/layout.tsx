@@ -120,6 +120,7 @@ export default function DashboardLayout({
     { name: 'العمولات', href: '/dashboard/accounting/commission', roles: ['ACCOUNTANT', 'MANAGER'] },
     { name: 'تقرير المتأخرات', href: '/dashboard/accounting/outstanding-fees', roles: ['ACCOUNTANT', 'MANAGER'] },
     { name: 'سجلات التدقيق', href: '/dashboard/audit', roles: ['AUDITOR', 'ACCOUNTANT', 'MANAGER'] },
+    { name: '👨‍💻 لوحة المطورين', href: '/dashboard/developers', roles: ['MANAGER'] },
   ];
 
   const filteredNav = navigation.filter(

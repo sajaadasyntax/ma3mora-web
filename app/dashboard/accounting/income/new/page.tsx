@@ -16,6 +16,7 @@ export default function NewIncomePage() {
     amount: '',
     method: 'CASH',
     description: '',
+    isDebt: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,6 +38,7 @@ export default function NewIncomePage() {
         amount: parseFloat(formData.amount),
         method: formData.method,
         description: formData.description,
+        isDebt: formData.isDebt,
       });
 
       alert('✅ تم إضافة الإيراد بنجاح!');
@@ -97,6 +99,19 @@ export default function NewIncomePage() {
                   ]}
                 />
 
+                <div className="flex items-center gap-3 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <input
+                    type="checkbox"
+                    id="isDebt"
+                    checked={formData.isDebt}
+                    onChange={(e) => setFormData({ ...formData, isDebt: e.target.checked })}
+                    className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                  />
+                  <label htmlFor="isDebt" className="text-sm font-medium text-purple-900 cursor-pointer">
+                    📊 تسجيل كدين (مبلغ مستحق لنا - لن يحسب في الرصيد السائل)
+                  </label>
+                </div>
+
                 <div className="flex gap-2 pt-4">
                   <Button
                     type="submit"
@@ -139,7 +154,7 @@ export default function NewIncomePage() {
 
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
               <p className="text-xs text-blue-800">
-                💡 <strong>ملاحظة:</strong> سيتم إضافة هذا الإيراد إلى الرصيد الصافي للنظام
+                💡 <strong>ملاحظة:</strong> {formData.isDebt ? 'هذا الإيراد مسجل كدين مستحق لنا ولن يؤثر على الرصيد السائل' : 'سيتم إضافة هذا الإيراد إلى الرصيد الصافي للنظام'}
               </p>
             </div>
           </Card>
