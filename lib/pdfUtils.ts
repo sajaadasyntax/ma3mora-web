@@ -570,6 +570,27 @@ export function generateLiquidCashPDF(liquidData: any) {
       </div>
     </div>
 
+    ${liquidData.debts ? `
+    <div class="section">
+      <h2>ملخص الديون</h2>
+      
+      <div class="summary">
+        <div class="summary-row">
+          <span>الديون الواردة (لنا):</span>
+          <span class="amount positive">${formatCurrency(liquidData.debts.inbound.total)}</span>
+        </div>
+        <div class="summary-row">
+          <span>الديون الصادرة (علينا):</span>
+          <span class="amount negative">${formatCurrency(liquidData.debts.outbound.total)}</span>
+        </div>
+        <div class="summary-row total">
+          <span>صافي الديون:</span>
+          <span class="amount ${parseFloat(liquidData.debts.net) >= 0 ? 'positive' : 'negative'}">${formatCurrency(liquidData.debts.net)}</span>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+
     <div class="section">
       <h2>تفصيل الإيرادات حسب طريقة الدفع</h2>
       

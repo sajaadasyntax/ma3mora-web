@@ -87,6 +87,35 @@ export default function LiquidCashPage() {
         </Card>
       </div>
 
+      {/* Debt Balances */}
+      {liquidData.debts && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-teal-500 to-teal-600 text-white">
+            <h3 className="text-sm font-semibold mb-1">الديون الواردة (لنا)</h3>
+            <p className="text-2xl font-bold">{formatCurrency(liquidData.debts.inbound.total)}</p>
+            <p className="text-sm opacity-90">
+              {liquidData.debts.inbound.count} دين
+            </p>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white">
+            <h3 className="text-sm font-semibold mb-1">الديون الصادرة (علينا)</h3>
+            <p className="text-2xl font-bold">{formatCurrency(liquidData.debts.outbound.total)}</p>
+            <p className="text-sm opacity-90">
+              {liquidData.debts.outbound.count} دين
+            </p>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
+            <h3 className="text-sm font-semibold mb-1">صافي الديون</h3>
+            <p className="text-2xl font-bold">{formatCurrency(liquidData.debts.net)}</p>
+            <p className="text-sm opacity-90">
+              الفرق بين الديون الواردة والصادرة
+            </p>
+          </Card>
+        </div>
+      )}
+
       {/* Detailed Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payments */}
