@@ -75,7 +75,7 @@ export default function ItemsPage() {
         const filtered = data.filter((item: any) => item.section === selectedSection);
         setItems(filtered);
       } else {
-        setItems(data);
+      setItems(data);
       }
     } catch (error) {
       console.error('Error loading items:', error);
