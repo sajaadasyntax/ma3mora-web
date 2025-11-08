@@ -120,7 +120,6 @@ export default function DashboardLayout({
     { name: 'العمولات', href: '/dashboard/accounting/commission', roles: ['ACCOUNTANT', 'MANAGER'] },
     { name: 'تقرير المتأخرات', href: '/dashboard/accounting/outstanding-fees', roles: ['ACCOUNTANT', 'MANAGER'] },
     { name: 'سجلات التدقيق', href: '/dashboard/audit', roles: ['AUDITOR', 'ACCOUNTANT', 'MANAGER'] },
-    { name: '👨‍💻 لوحة المطورين', href: '/dashboard/developers', roles: ['MANAGER'] },
   ];
 
   const filteredNav = navigation.filter(
@@ -140,6 +139,15 @@ export default function DashboardLayout({
               </div>
             </div>
             <div className="flex items-center gap-4">
+              {user.role === 'MANAGER' && (
+                <Link
+                  href="/developers"
+                  className="px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-100 hover:bg-purple-200 rounded-lg transition-colors flex items-center gap-1"
+                  title="لوحة المطورين"
+                >
+                  👨‍💻
+                </Link>
+              )}
               <div className="text-sm">
                 <p className="font-medium text-gray-900">{user.username}</p>
                 <p className="text-gray-500">{roleLabels[user.role]}</p>

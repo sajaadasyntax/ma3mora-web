@@ -272,6 +272,9 @@ export const api = {
   getReceivablesPayables: (params?: any) =>
     fetchAPI('/accounting/receivables-payables', { params }),
   
+  getAssetsLiabilities: () =>
+    fetchAPI('/accounting/assets-liabilities'),
+  
   closeBalance: () =>
     fetchAPI('/accounting/balance/close', { method: 'POST' }),
   
