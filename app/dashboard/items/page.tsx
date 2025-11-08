@@ -13,8 +13,10 @@ import { formatCurrency, sectionLabels } from '@/lib/utils';
 export default function ItemsPage() {
   const { user } = useUser();
   const [items, setItems] = useState<any[]>([]);
+  const [allItems, setAllItems] = useState<any[]>([]);
   const [inventories, setInventories] = useState<any[]>([]);
   const [selectedInventory, setSelectedInventory] = useState<string>('');
+  const [selectedSection, setSelectedSection] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [updatingPrices, setUpdatingPrices] = useState(false);
@@ -40,6 +42,18 @@ export default function ItemsPage() {
     loadItems();
   }, []);
 
+  useEffect(() => {
+    // Filter items when section changes or when allItems is loaded
+    if (allItems.length > 0) {
+      if (selectedSection) {
+        const filtered = allItems.filter(item => item.section === selectedSection);
+        setItems(filtered);
+      } else {
+        setItems(allItems);
+      }
+    }
+  }, [selectedSection, allItems]);
+
   const loadInventories = async () => {
     try {
       const data = await api.getInventories();
@@ -55,7 +69,14 @@ export default function ItemsPage() {
   const loadItems = async () => {
     try {
       const data = await api.getItems();
-      setItems(data);
+      setAllItems(data);
+      // Apply initial filter if section is selected
+      if (selectedSection) {
+        const filtered = data.filter(item => item.section === selectedSection);
+        setItems(filtered);
+      } else {
+        setItems(data);
+      }
     } catch (error) {
       console.error('Error loading items:', error);
     } finally {
@@ -298,6 +319,16 @@ export default function ItemsPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">الأصناف والأسعار</h1>
         <div className="flex gap-4 items-center">
+          <Select
+            label="القسم"
+            value={selectedSection}
+            onChange={(e) => setSelectedSection(e.target.value)}
+            options={[
+              { value: '', label: 'جميع الأقسام' },
+              { value: 'GROCERY', label: 'بقالات' },
+              { value: 'BAKERY', label: 'أفران' },
+            ]}
+          />
           <Select
             label="المخزن"
             value={selectedInventory}
