@@ -86,26 +86,20 @@ export default function AssetsLiabilitiesPage() {
               </div>
             </div>
             
-            {data.assets.stockValues.items.length > 0 ? (
+            {data.assets.stockValues.byWarehouse && data.assets.stockValues.byWarehouse.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المخزن</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الصنف</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الكمية</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">سعر الجملة</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">القيمة</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجمالي القيمة</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {data.assets.stockValues.items.map((item: any, idx: number) => (
+                    {data.assets.stockValues.byWarehouse.map((warehouse: any, idx: number) => (
                       <tr key={idx}>
-                        <td className="px-4 py-3 text-sm text-gray-900">{item.inventoryName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{item.itemName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{item.quantity}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{formatCurrency(item.wholesalePrice)}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{formatCurrency(item.value)}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{warehouse.inventoryName}</td>
+                        <td className="px-4 py-3 text-sm font-bold text-green-600">{formatCurrency(warehouse.totalValue)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -162,7 +156,7 @@ export default function AssetsLiabilitiesPage() {
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               الديون الواردة (لنا)
             </h3>
-            <div className="mb-4 p-4 bg-teal-50 rounded-lg">
+            <div className="p-4 bg-teal-50 rounded-lg">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold text-gray-800">الإجمالي:</span>
                 <span className="text-2xl font-bold text-teal-600">
@@ -173,26 +167,6 @@ export default function AssetsLiabilitiesPage() {
                 {data.assets.inboundDebts.count} دين
               </p>
             </div>
-            
-            {data.assets.inboundDebts.items.length > 0 ? (
-              <div className="space-y-2">
-                {data.assets.inboundDebts.items.map((debt: any) => (
-                  <div key={debt.id} className="bg-teal-50 p-3 rounded-lg border border-teal-200">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900">{debt.description}</p>
-                        <p className="text-sm text-gray-600">{formatDateTime(debt.createdAt)}</p>
-                      </div>
-                      <span className="text-lg font-bold text-teal-600">
-                        {formatCurrency(debt.amount)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-4">لا توجد ديون واردة</p>
-            )}
           </Card>
 
           {/* Delivered Unpaid Sales */}
