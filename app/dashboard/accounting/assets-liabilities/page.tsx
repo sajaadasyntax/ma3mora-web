@@ -172,7 +172,7 @@ export default function AssetsLiabilitiesPage() {
           {/* Delivered Unpaid Sales */}
           <Card>
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              إجمالي المبيعات المسلمة غير المدفوعة
+              إجمالي المبيعات المسلمة غير المدفوعة حسب المخازن
             </h3>
             <div className="mb-4 p-4 bg-yellow-50 rounded-lg">
               <div className="flex justify-between items-center">
@@ -181,33 +181,22 @@ export default function AssetsLiabilitiesPage() {
                   {formatCurrency(data.assets.deliveredUnpaidSales.total)}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
-                {data.assets.deliveredUnpaidSales.count} فاتورة
-              </p>
             </div>
             
-            {data.assets.deliveredUnpaidSales.items.length > 0 ? (
+            {data.assets.deliveredUnpaidSales.byWarehouse && data.assets.deliveredUnpaidSales.byWarehouse.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم الفاتورة</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">العميل</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المخزن</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الإجمالي</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المدفوع</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المتبقي</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجمالي المتبقي</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {data.assets.deliveredUnpaidSales.items.map((invoice: any) => (
-                      <tr key={invoice.id}>
-                        <td className="px-4 py-3 text-sm text-gray-900">{invoice.invoiceNumber}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{invoice.customerName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{invoice.inventoryName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{formatCurrency(invoice.total)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{formatCurrency(invoice.paidAmount)}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-yellow-600">{formatCurrency(invoice.outstanding)}</td>
+                    {data.assets.deliveredUnpaidSales.byWarehouse.map((warehouse: any, idx: number) => (
+                      <tr key={idx}>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{warehouse.inventoryName}</td>
+                        <td className="px-4 py-3 text-sm font-bold text-yellow-600">{formatCurrency(warehouse.totalOutstanding)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -230,7 +219,7 @@ export default function AssetsLiabilitiesPage() {
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               الديون الصادرة (علينا)
             </h3>
-            <div className="mb-4 p-4 bg-red-50 rounded-lg">
+            <div className="p-4 bg-red-50 rounded-lg">
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold text-gray-800">الإجمالي:</span>
                 <span className="text-2xl font-bold text-red-600">
@@ -241,32 +230,12 @@ export default function AssetsLiabilitiesPage() {
                 {data.liabilities.outboundDebts.count} دين
               </p>
             </div>
-            
-            {data.liabilities.outboundDebts.items.length > 0 ? (
-              <div className="space-y-2">
-                {data.liabilities.outboundDebts.items.map((debt: any) => (
-                  <div key={debt.id} className="bg-red-50 p-3 rounded-lg border border-red-200">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900">{debt.description}</p>
-                        <p className="text-sm text-gray-600">{formatDateTime(debt.createdAt)}</p>
-                      </div>
-                      <span className="text-lg font-bold text-red-600">
-                        {formatCurrency(debt.amount)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-4">لا توجد ديون صادرة</p>
-            )}
           </Card>
 
           {/* Unpaid Procurement Orders */}
           <Card>
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              أوامر الشراء غير المدفوعة
+              أوامر الشراء غير المدفوعة حسب المورد
             </h3>
             <div className="mb-4 p-4 bg-orange-50 rounded-lg">
               <div className="flex justify-between items-center">
@@ -275,33 +244,22 @@ export default function AssetsLiabilitiesPage() {
                   {formatCurrency(data.liabilities.unpaidProcOrders.total)}
                 </span>
               </div>
-              <p className="text-sm text-gray-600 mt-1">
-                {data.liabilities.unpaidProcOrders.count} أمر شراء
-              </p>
             </div>
             
-            {data.liabilities.unpaidProcOrders.items.length > 0 ? (
+            {data.liabilities.unpaidProcOrders.bySupplier && data.liabilities.unpaidProcOrders.bySupplier.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">رقم الأمر</th>
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المورد</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المخزن</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">الإجمالي</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المدفوع</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">المتبقي</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">إجمالي المتبقي</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {data.liabilities.unpaidProcOrders.items.map((order: any) => (
-                      <tr key={order.id}>
-                        <td className="px-4 py-3 text-sm text-gray-900">{order.orderNumber}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{order.supplierName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{order.inventoryName}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{formatCurrency(order.total)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{formatCurrency(order.paidAmount)}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-orange-600">{formatCurrency(order.outstanding)}</td>
+                    {data.liabilities.unpaidProcOrders.bySupplier.map((supplier: any, idx: number) => (
+                      <tr key={idx}>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{supplier.supplierName}</td>
+                        <td className="px-4 py-3 text-sm font-bold text-orange-600">{formatCurrency(supplier.totalOutstanding)}</td>
                       </tr>
                     ))}
                   </tbody>
