@@ -176,7 +176,7 @@ export default function LiquidCashPage() {
                     
                     <div className="flex gap-2 mt-3">
                       <Button
-                        size="small"
+                        size="sm"
                         onClick={() => handlePayInboundDebt(debt.id, 'CASH')}
                         disabled={payingDebt === debt.id}
                         className="bg-green-600 hover:bg-green-700 text-xs"
@@ -184,7 +184,7 @@ export default function LiquidCashPage() {
                         {payingDebt === debt.id ? 'جاري...' : '💵 كاش'}
                       </Button>
                       <Button
-                        size="small"
+                        size="sm"
                         onClick={() => handlePayInboundDebt(debt.id, 'BANK')}
                         disabled={payingDebt === debt.id}
                         className="bg-blue-600 hover:bg-blue-700 text-xs"
@@ -192,7 +192,7 @@ export default function LiquidCashPage() {
                         {payingDebt === debt.id ? 'جاري...' : '🏦 بنكك'}
                       </Button>
                       <Button
-                        size="small"
+                        size="sm"
                         onClick={() => handlePayInboundDebt(debt.id, 'BANK_NILE')}
                         disabled={payingDebt === debt.id}
                         className="bg-purple-600 hover:bg-purple-700 text-xs"
