@@ -46,7 +46,7 @@ export default function ItemsPage() {
     // Filter items when section changes or when allItems is loaded
     if (allItems.length > 0) {
       if (selectedSection) {
-        const filtered = allItems.filter(item => item.section === selectedSection);
+        const filtered = allItems.filter((item: any) => item.section === selectedSection);
         setItems(filtered);
       } else {
         setItems(allItems);
@@ -72,7 +72,7 @@ export default function ItemsPage() {
       setAllItems(data);
       // Apply initial filter if section is selected
       if (selectedSection) {
-        const filtered = data.filter(item => item.section === selectedSection);
+        const filtered = data.filter((item: any) => item.section === selectedSection);
         setItems(filtered);
       } else {
         setItems(data);
