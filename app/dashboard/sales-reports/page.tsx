@@ -19,10 +19,13 @@ export default function SalesReportsPage() {
   const [loading, setLoading] = useState(false);
   const [inventories, setInventories] = useState<any[]>([]);
   const [filters, setFilters] = useState({
-    date: '', // Single date only
+    date: '', // Single date (alternative to date range)
+    startDate: '', // Start date for date range
+    endDate: '', // End date for date range
     inventoryId: '',
     section: '',
     paymentMethod: '',
+    salesUserRole: '', // Filter by sales user role (e.g., 'AGENT' for agent sales)
     viewType: 'items', // 'items' for item-level stock movements, 'invoices' for invoice-level, 'grouped' for period grouping
   });
 
@@ -49,21 +52,27 @@ export default function SalesReportsPage() {
     try {
       const params: any = {};
       
-      // Single date only
-      if (filters.date) {
+      // Date filtering - prefer date range over single date
+      if (filters.startDate && filters.endDate) {
+        params.startDate = filters.startDate;
+        params.endDate = filters.endDate;
+      } else if (filters.date) {
         params.date = filters.date;
       }
       
       if (filters.inventoryId) params.inventoryId = filters.inventoryId;
       if (filters.section) params.section = filters.section;
       if (filters.paymentMethod) params.paymentMethod = filters.paymentMethod;
+      if (filters.salesUserRole) params.salesUserRole = filters.salesUserRole;
       if (filters.viewType) params.viewType = filters.viewType;
 
       console.log('Loading sales reports with params:', params);
 
       // Ensure aggregators are updated before loading report
-      if (filters.date) {
-        await ensureAggregatorsUpdated(filters.date, filters.date, {
+      const dateForAggregation = filters.date || filters.startDate;
+      if (dateForAggregation) {
+        const endDateForAggregation = filters.endDate || filters.date || filters.startDate;
+        await ensureAggregatorsUpdated(dateForAggregation, endDateForAggregation, {
           inventoryId: filters.inventoryId || undefined,
           section: filters.section || undefined,
           silent: true,
@@ -87,9 +96,9 @@ export default function SalesReportsPage() {
   };
 
   const handleApplyFilters = () => {
-    // Validate date is always required
-    if (!filters.date) {
-      alert('يرجى تحديد التاريخ');
+    // Validate date is always required (either single date or date range)
+    if (!filters.date && (!filters.startDate || !filters.endDate)) {
+      alert('يرجى تحديد التاريخ أو فترة زمنية');
       return;
     }
     
@@ -105,9 +114,12 @@ export default function SalesReportsPage() {
   const handleResetFilters = () => {
     setFilters({
       date: '',
+      startDate: '',
+      endDate: '',
       inventoryId: '',
       section: '',
       paymentMethod: '',
+      salesUserRole: '',
       viewType: 'items',
     });
     setReportData(null);
@@ -128,15 +140,56 @@ export default function SalesReportsPage() {
 
       {/* Filters */}
       <Card className="mb-6 print:hidden">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              التاريخ
+              التاريخ (يوم واحد)
             </label>
             <Input
               type="date"
               value={filters.date}
-              onChange={(e) => handleFilterChange('date', e.target.value)}
+              onChange={(e) => {
+                handleFilterChange('date', e.target.value);
+                // Clear date range when single date is selected
+                if (e.target.value) {
+                  handleFilterChange('startDate', '');
+                  handleFilterChange('endDate', '');
+                }
+              }}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              من تاريخ
+            </label>
+            <Input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => {
+                handleFilterChange('startDate', e.target.value);
+                // Clear single date when date range is selected
+                if (e.target.value) {
+                  handleFilterChange('date', '');
+                }
+              }}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              إلى تاريخ
+            </label>
+            <Input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => {
+                handleFilterChange('endDate', e.target.value);
+                // Clear single date when date range is selected
+                if (e.target.value) {
+                  handleFilterChange('date', '');
+                }
+              }}
             />
           </div>
 
@@ -181,6 +234,22 @@ export default function SalesReportsPage() {
                 { value: 'CASH', label: paymentMethodLabels.CASH },
                 { value: 'BANK', label: paymentMethodLabels.BANK },
                 { value: 'BANK_NILE', label: paymentMethodLabels.BANK_NILE },
+              ]}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              نوع المبيعات
+            </label>
+            <Select
+              value={filters.salesUserRole}
+              onChange={(e) => handleFilterChange('salesUserRole', e.target.value)}
+              options={[
+                { value: '', label: 'جميع المبيعات' },
+                { value: 'AGENT', label: 'مبيعات الوكيل' },
+                { value: 'SALES_GROCERY', label: 'مبيعات بقالة' },
+                { value: 'SALES_BAKERY', label: 'مبيعات أفران' },
               ]}
             />
           </div>
