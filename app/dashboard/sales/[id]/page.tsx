@@ -16,7 +16,7 @@ import {
   paymentMethodLabels,
   sectionLabels,
 } from '@/lib/utils';
-import { generateInvoicePDF } from '@/lib/pdfUtils';
+import { generateInvoicePDF, generateInvoicePDFForAccountant } from '@/lib/pdfUtils';
 import { useIsAuditor } from '@/lib/auditorUtils';
 
 interface PageProps {
@@ -235,6 +235,14 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
           <Button variant="secondary" onClick={() => router.push('/dashboard/sales')}>
             ← رجوع
           </Button>
+          {user?.role === 'ACCOUNTANT' && (
+            <Button
+              onClick={() => generateInvoicePDFForAccountant(invoice)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              🖨️ طباعة للمحاسب (نسختان)
+            </Button>
+          )}
           <Button
             onClick={() => generateInvoicePDF(invoice)}
             className="bg-blue-600 hover:bg-blue-700"

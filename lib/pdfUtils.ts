@@ -448,6 +448,308 @@ export function generateInvoicePDF(invoice: any) {
   generatePDF(htmlContent, `فاتورة_${invoice.invoiceNumber}`);
 }
 
+// Generate invoice PDF for accountant - prints twice on one A4 page
+export function generateInvoicePDFForAccountant(invoice: any) {
+  const currentDate = new Date().toLocaleDateString('ar-SD', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const remainingAmount = parseFloat(invoice.total) - parseFloat(invoice.paidAmount);
+
+  // Helper function to generate invoice content
+  const generateInvoiceContent = () => {
+    return `
+      <div class="invoice-duplicate">
+        <div class="header">
+          <h1>فاتورة مبيعات</h1>
+          <div class="date">رقم الفاتورة: ${invoice.invoiceNumber} | التاريخ: ${currentDate}</div>
+        </div>
+
+        <div class="section">
+          <h2>معلومات الفاتورة</h2>
+          <table>
+            <tr>
+              <th>العميل</th>
+              <td>${invoice.customer?.name || 'بدون عميل'}</td>
+              <th>المخزن</th>
+              <td>${invoice.inventory.name}</td>
+            </tr>
+            <tr>
+              <th>القسم</th>
+              <td>${invoice.section === 'GROCERY' ? 'بقالة' : 'أفران'}</td>
+              <th>طريقة الدفع</th>
+              <td>${invoice.paymentMethod === 'CASH' ? 'كاش' : invoice.paymentMethod === 'BANK' ? 'بنكك' : 'بنك النيل'}</td>
+            </tr>
+            <tr>
+              <th>حالة الدفع</th>
+              <td>${invoice.paymentStatus === 'PAID' ? 'مدفوعة' : invoice.paymentStatus === 'PARTIAL' ? 'مدفوعة جزئياً' : 'دفع آجل'}</td>
+              <th>حالة التسليم</th>
+              <td>${invoice.deliveryStatus === 'DELIVERED' ? 'مُسلَّمة' : 'غير مُسلَّمة'}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2>أصناف الفاتورة</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>الصنف</th>
+                <th>الكمية</th>
+                <th>الكمية المجانية</th>
+                <th>السعر</th>
+                <th>المجموع</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoice.items.map((item: any) => `
+                <tr>
+                  <td>${item.item.name}</td>
+                  <td>${item.quantity}</td>
+                  <td>${item.giftQty || 0}</td>
+                  <td>${formatCurrency(item.unitPrice)}</td>
+                  <td>${formatCurrency(item.lineTotal)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="section">
+          <h2>ملخص الفاتورة</h2>
+          <div class="summary">
+            <div class="summary-row">
+              <span>المجموع الفرعي:</span>
+              <span class="amount">${formatCurrency(invoice.subtotal)}</span>
+            </div>
+            <div class="summary-row">
+              <span>الخصم:</span>
+              <span class="amount">${formatCurrency(invoice.discount)}</span>
+            </div>
+            <div class="summary-row total">
+              <span>المجموع الكلي:</span>
+              <span class="amount">${formatCurrency(invoice.total)}</span>
+            </div>
+            <div class="summary-row">
+              <span>المدفوع:</span>
+              <span class="amount">${formatCurrency(invoice.paidAmount)}</span>
+            </div>
+            <div class="summary-row total">
+              <span>المتبقي:</span>
+              <span class="amount ${remainingAmount > 0 ? 'negative' : 'positive'}">${formatCurrency(remainingAmount)}</span>
+            </div>
+          </div>
+        </div>
+
+        ${invoice.payments && invoice.payments.length > 0 ? `
+        <div class="section">
+          <h2>الدفعات</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>المبلغ</th>
+                <th>طريقة الدفع</th>
+                <th>ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoice.payments.map((payment: any) => `
+                <tr>
+                  <td>${new Date(payment.paidAt).toLocaleDateString('ar-SD')}</td>
+                  <td>${formatCurrency(payment.amount)}</td>
+                  <td>${payment.method === 'CASH' ? 'كاش' : payment.method === 'BANK' ? 'بنكك' : 'بنك النيل'}</td>
+                  <td>${payment.notes || '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        ` : ''}
+
+        ${invoice.notes ? `
+        <div class="section">
+          <h2>ملاحظات</h2>
+          <p>${invoice.notes}</p>
+        </div>
+        ` : ''}
+      </div>
+    `;
+  };
+
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>فاتورة_${invoice.invoiceNumber}_محاسب</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+        
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        @page {
+          size: A4;
+          margin: 10mm;
+        }
+        
+        body {
+          font-family: 'Noto Sans Arabic', 'Segoe UI', 'Tahoma', 'Arial Unicode MS', Arial, sans-serif;
+          direction: rtl;
+          text-align: right;
+          line-height: 1.4;
+          color: #333;
+          background: white;
+          font-feature-settings: 'liga' 1, 'calt' 1;
+          text-rendering: optimizeLegibility;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+        
+        .invoice-duplicate {
+          width: 100%;
+          page-break-inside: avoid;
+          margin-bottom: 20px;
+          border: 1px solid #ddd;
+          padding: 15px;
+          box-sizing: border-box;
+        }
+        
+        .invoice-duplicate:last-child {
+          margin-bottom: 0;
+        }
+        
+        .header {
+          text-align: center;
+          margin-bottom: 15px;
+          border-bottom: 2px solid #333;
+          padding-bottom: 10px;
+        }
+        
+        .header h1 {
+          font-size: 22px;
+          font-weight: 700;
+          color: #2c3e50;
+          margin-bottom: 5px;
+        }
+        
+        .header .date {
+          font-size: 14px;
+          color: #666;
+        }
+        
+        .section {
+          margin-bottom: 15px;
+        }
+        
+        .section h2 {
+          font-size: 16px;
+          font-weight: 600;
+          color: #2c3e50;
+          margin-bottom: 8px;
+          border-bottom: 1px solid #ddd;
+          padding-bottom: 3px;
+        }
+        
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 12px;
+          font-size: 12px;
+        }
+        
+        table th,
+        table td {
+          border: 1px solid #ddd;
+          padding: 6px 8px;
+          text-align: right;
+        }
+        
+        table th {
+          background-color: #f8f9fa;
+          font-weight: 600;
+          color: #2c3e50;
+        }
+        
+        table tr:nth-child(even) {
+          background-color: #f8f9fa;
+        }
+        
+        .summary {
+          background-color: #f8f9fa;
+          padding: 12px;
+          border-radius: 4px;
+        }
+        
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 6px;
+          font-size: 13px;
+        }
+        
+        .summary-row.total {
+          font-weight: 700;
+          font-size: 14px;
+          border-top: 1px solid #ddd;
+          padding-top: 6px;
+          margin-top: 6px;
+        }
+        
+        .summary-row .amount {
+          font-weight: 600;
+        }
+        
+        .summary-row .amount.negative {
+          color: #dc3545;
+        }
+        
+        .summary-row .amount.positive {
+          color: #28a745;
+        }
+        
+        @media print {
+          body {
+            padding: 0;
+          }
+          
+          .invoice-duplicate {
+            page-break-inside: avoid;
+            margin-bottom: 15mm;
+          }
+          
+          .invoice-duplicate:last-child {
+            margin-bottom: 0;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      ${generateInvoiceContent()}
+      ${generateInvoiceContent()}
+    </body>
+    </html>
+  `;
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return;
+
+  printWindow.document.write(htmlContent);
+  printWindow.document.close();
+
+  // Wait for fonts to load before printing
+  setTimeout(() => {
+    printWindow.print();
+  }, 500);
+}
+
 export function generateProcOrderPDF(order: any) {
   const currentDate = new Date().toLocaleDateString('ar-SD', {
     year: 'numeric',
