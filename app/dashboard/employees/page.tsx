@@ -53,6 +53,14 @@ export default function EmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [salaries, setSalaries] = useState<Salary[]>([]);
   const [advances, setAdvances] = useState<Advance[]>([]);
+  const [showReport, setShowReport] = useState(false);
+  const [reportData, setReportData] = useState<any>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportFilters, setReportFilters] = useState({
+    startDate: '',
+    endDate: '',
+    employeeId: '',
+  });
 
   // Form states
   const [employeeForm, setEmployeeForm] = useState({
@@ -102,6 +110,24 @@ export default function EmployeesPage() {
       console.error('Error loading employees:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadReport = async () => {
+    setReportLoading(true);
+    try {
+      const params: any = {};
+      if (reportFilters.startDate) params.startDate = reportFilters.startDate;
+      if (reportFilters.endDate) params.endDate = reportFilters.endDate;
+      if (reportFilters.employeeId) params.employeeId = reportFilters.employeeId;
+      
+      const data = await api.getEmployeeReport(params);
+      setReportData(data);
+    } catch (error) {
+      console.error('Error loading report:', error);
+      alert('فشل تحميل التقرير');
+    } finally {
+      setReportLoading(false);
     }
   };
 
@@ -308,10 +334,161 @@ export default function EmployeesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">إدارة الموظفين</h1>
-        <Button onClick={() => setShowAddEmployee(true)}>
-          إضافة موظف
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setShowReport(!showReport)}>
+            {showReport ? 'إخفاء التقرير' : 'عرض التقرير'}
+          </Button>
+          <Button onClick={() => setShowAddEmployee(true)}>
+            إضافة موظف
+          </Button>
+        </div>
       </div>
+
+      {showReport && (
+        <Card>
+          <h2 className="text-xl font-bold mb-4">تقرير الموظفين</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <Input
+              label="من تاريخ"
+              type="date"
+              value={reportFilters.startDate}
+              onChange={(e) => setReportFilters({ ...reportFilters, startDate: e.target.value })}
+            />
+            <Input
+              label="إلى تاريخ"
+              type="date"
+              value={reportFilters.endDate}
+              onChange={(e) => setReportFilters({ ...reportFilters, endDate: e.target.value })}
+            />
+            <Select
+              label="الموظف (اختياري)"
+              value={reportFilters.employeeId}
+              onChange={(e) => setReportFilters({ ...reportFilters, employeeId: e.target.value })}
+              options={[
+                { value: '', label: 'جميع الموظفين' },
+                ...employees.map((emp) => ({ value: emp.id, label: emp.name })),
+              ]}
+            />
+            <div className="flex items-end">
+              <Button onClick={loadReport} disabled={reportLoading} className="w-full">
+                {reportLoading ? 'جاري التحميل...' : 'تحميل التقرير'}
+              </Button>
+            </div>
+          </div>
+
+          {reportData && (
+            <div className="space-y-4">
+              {reportData.period.startDate || reportData.period.endDate ? (
+                <div className="text-sm text-gray-600 mb-4">
+                  <strong>الفترة:</strong>{' '}
+                  {reportData.period.startDate
+                    ? new Date(reportData.period.startDate).toLocaleDateString('ar-SD')
+                    : 'بداية'}{' '}
+                  -{' '}
+                  {reportData.period.endDate
+                    ? new Date(reportData.period.endDate).toLocaleDateString('ar-SD')
+                    : 'نهاية'}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-600 mb-4">
+                  <strong>الفترة:</strong> جميع البيانات
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الاسم</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">المنصب</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">عدد الرواتب</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">إجمالي الرواتب</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">المدفوع</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">غير المدفوع</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">عدد السلفيات</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">إجمالي السلفيات</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">المدفوع</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">غير المدفوع</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الإجمالي</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {reportData.employees.map((emp: any) => (
+                      <tr key={emp.id}>
+                        <td className="px-4 py-2 text-sm">{emp.name}</td>
+                        <td className="px-4 py-2 text-sm">{emp.position}</td>
+                        <td className="px-4 py-2 text-sm text-center">
+                          {emp.paidSalaryCount}/{emp.salaryCount}
+                        </td>
+                        <td className="px-4 py-2 text-sm">{formatCurrency(emp.totalSalaries)}</td>
+                        <td className="px-4 py-2 text-sm text-green-600">{formatCurrency(emp.paidSalaries)}</td>
+                        <td className="px-4 py-2 text-sm text-red-600">{formatCurrency(emp.unpaidSalaries)}</td>
+                        <td className="px-4 py-2 text-sm text-center">
+                          {emp.paidAdvanceCount}/{emp.advanceCount}
+                        </td>
+                        <td className="px-4 py-2 text-sm">{formatCurrency(emp.totalAdvances)}</td>
+                        <td className="px-4 py-2 text-sm text-green-600">{formatCurrency(emp.paidAdvances)}</td>
+                        <td className="px-4 py-2 text-sm text-red-600">{formatCurrency(emp.unpaidAdvances)}</td>
+                        <td className="px-4 py-2 text-sm font-semibold">{formatCurrency(emp.totalAmount)}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-gray-100 font-bold">
+                      <td colSpan={2} className="px-4 py-2 text-sm">الإجمالي</td>
+                      <td className="px-4 py-2 text-sm text-center">
+                        {reportData.totals.paidSalaryCount}/{reportData.totals.salaryCount}
+                      </td>
+                      <td className="px-4 py-2 text-sm">{formatCurrency(reportData.totals.totalSalaries)}</td>
+                      <td className="px-4 py-2 text-sm text-green-600">
+                        {formatCurrency(reportData.totals.paidSalaries)}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-red-600">
+                        {formatCurrency(reportData.totals.unpaidSalaries)}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-center">
+                        {reportData.totals.paidAdvanceCount}/{reportData.totals.advanceCount}
+                      </td>
+                      <td className="px-4 py-2 text-sm">{formatCurrency(reportData.totals.totalAdvances)}</td>
+                      <td className="px-4 py-2 text-sm text-green-600">
+                        {formatCurrency(reportData.totals.paidAdvances)}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-red-600">
+                        {formatCurrency(reportData.totals.unpaidAdvances)}
+                      </td>
+                      <td className="px-4 py-2 text-sm">{formatCurrency(reportData.totals.totalAmount)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <h3 className="font-semibold mb-2">ملخص الإجماليات</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <div className="text-gray-600">إجمالي المدفوع</div>
+                    <div className="text-lg font-bold text-green-600">
+                      {formatCurrency(reportData.totals.totalPaid)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">إجمالي غير المدفوع</div>
+                    <div className="text-lg font-bold text-red-600">
+                      {formatCurrency(reportData.totals.totalUnpaid)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">إجمالي الرواتب</div>
+                    <div className="text-lg font-bold">{formatCurrency(reportData.totals.totalSalaries)}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">إجمالي السلفيات</div>
+                    <div className="text-lg font-bold">{formatCurrency(reportData.totals.totalAdvances)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card>
         <Table columns={employeeColumns} data={employees} />

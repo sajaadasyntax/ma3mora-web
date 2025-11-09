@@ -462,28 +462,53 @@ export default function BankTransactionsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {transactions.map((transaction) => (
-                  <tr key={`${transaction.type}-${transaction.id}`} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDateTime(transaction.date)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {getTransactionTypeLabel(transaction.type)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {paymentMethodLabels[transaction.method] || transaction.method}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                      {formatCurrency(parseFloat(transaction.amount))}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {transaction.recordedBy}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {getTransactionDetails(transaction)}
-                    </td>
-                  </tr>
-                ))}
+                {transactions.map((transaction) => {
+                  // Determine if transaction is positive (income) or negative (expense)
+                  const isPositive = transaction.type === 'SALES_PAYMENT' || 
+                    (transaction.type === 'CASH_EXCHANGE' && 
+                     (transaction.details.toMethod === 'BANK' || transaction.details.toMethod === 'BANK_NILE'));
+                  const isNegative = transaction.type === 'PROCUREMENT_PAYMENT' || 
+                    transaction.type === 'EXPENSE' || 
+                    transaction.type === 'SALARY' || 
+                    transaction.type === 'ADVANCE' ||
+                    (transaction.type === 'CASH_EXCHANGE' && 
+                     (transaction.details.fromMethod === 'BANK' || transaction.details.fromMethod === 'BANK_NILE'));
+                  
+                  const rowClass = isPositive 
+                    ? "bg-green-50 hover:bg-green-100" 
+                    : isNegative 
+                    ? "bg-red-50 hover:bg-red-100" 
+                    : "hover:bg-gray-50";
+                  
+                  const amountClass = isPositive 
+                    ? "text-green-700 font-semibold" 
+                    : isNegative 
+                    ? "text-red-700 font-semibold" 
+                    : "text-gray-900 font-semibold";
+
+                  return (
+                    <tr key={`${transaction.type}-${transaction.id}`} className={rowClass}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {formatDateTime(transaction.date)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {getTransactionTypeLabel(transaction.type)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {paymentMethodLabels[transaction.method] || transaction.method}
+                      </td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${amountClass}`}>
+                        {formatCurrency(parseFloat(transaction.amount))}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {transaction.recordedBy}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {getTransactionDetails(transaction)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

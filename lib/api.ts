@@ -355,6 +355,10 @@ export const api = {
       method: 'POST',
     }),
 
+  // Employee Report
+  getEmployeeReport: (params?: { startDate?: string; endDate?: string; employeeId?: string }) =>
+    fetchAPI('/employees/report', { params }),
+
   // Reports
   getSalesReports: (params?: any) =>
     fetchAPI('/sales/reports', { params }),

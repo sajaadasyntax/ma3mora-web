@@ -21,6 +21,7 @@ export default function OutstandingFeesPage() {
     period: 'ALL',
     startDate: '',
     endDate: '',
+    type: 'ALL', // 'ALL', 'CUSTOMERS', 'SUPPLIERS'
   });
 
   useEffect(() => {
@@ -39,6 +40,9 @@ export default function OutstandingFeesPage() {
         params.endDate = filters.endDate;
       } else if (filters.period !== 'ALL') {
         params.period = filters.period;
+      }
+      if (filters.type !== 'ALL') {
+        params.type = filters.type;
       }
       
       // Calculate date range based on period for aggregator update
@@ -89,6 +93,8 @@ export default function OutstandingFeesPage() {
     const sectionLabel = filters.section === 'ALL' ? 'الكل' : sectionLabels[filters.section] || filters.section;
     const periodLabels: Record<string, string> = { ALL: 'الكل', today: 'اليوم', week: 'هذا الأسبوع', month: 'هذا الشهر', year: 'هذا العام' };
     const periodLabel = periodLabels[filters.period] || 'الكل';
+    const typeLabels: Record<string, string> = { ALL: 'الكل (عملاء وموردون)', CUSTOMERS: 'العملاء فقط', SUPPLIERS: 'الموردون فقط' };
+    const typeLabel = typeLabels[filters.type] || 'الكل';
 
     const customersRows = (data.customers || []).map((inv: any) => `
       <tr>
@@ -133,7 +139,7 @@ export default function OutstandingFeesPage() {
     const html = `
       <div class="header">
         <h1>تقرير المتأخرات المالية</h1>
-        <div class="date">تاريخ التقرير: ${currentDate} | القسم: ${sectionLabel} | الفترة: ${periodLabel}</div>
+        <div class="date">تاريخ التقرير: ${currentDate} | القسم: ${sectionLabel} | الفترة: ${periodLabel} | النوع: ${typeLabel}</div>
       </div>
 
       <div class="section">
@@ -166,6 +172,7 @@ export default function OutstandingFeesPage() {
         </table>
       </div>
 
+      ${(filters.type === 'ALL' || filters.type === 'CUSTOMERS') && data.customers.length > 0 ? `
       <div class="section">
         <h2>العملاء المتأخرون (${data.customers.length})</h2>
         <table>
@@ -189,7 +196,9 @@ export default function OutstandingFeesPage() {
           </tbody>
         </table>
       </div>
+      ` : ''}
 
+      ${(filters.type === 'ALL' || filters.type === 'SUPPLIERS') && data.suppliers.length > 0 ? `
       <div class="section">
         <h2>الموردون المتأخرون (${data.suppliers.length})</h2>
         <table>
@@ -213,6 +222,7 @@ export default function OutstandingFeesPage() {
           </tbody>
         </table>
       </div>
+      ` : ''}
     `;
 
     generatePDF(html, 'تقرير_المتأخرات');
@@ -382,7 +392,7 @@ export default function OutstandingFeesPage() {
       {/* Filters */}
       <Card className="mb-6 print:hidden">
         <h2 className="text-xl font-semibold mb-4">مرشحات البحث</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Input
             label="من تاريخ"
             type="date"
@@ -419,6 +429,16 @@ export default function OutstandingFeesPage() {
               { value: 'year', label: 'هذا العام' },
             ]}
           />
+          <Select
+            label="النوع"
+            value={filters.type}
+            onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+            options={[
+              { value: 'ALL', label: 'الكل (عملاء وموردون)' },
+              { value: 'CUSTOMERS', label: 'العملاء فقط' },
+              { value: 'SUPPLIERS', label: 'الموردون فقط' },
+            ]}
+          />
         </div>
       </Card>
 
@@ -452,28 +472,32 @@ export default function OutstandingFeesPage() {
       )}
 
       {/* Customers Outstanding */}
-      <Card className="mb-6">
-        <h2 className="text-xl font-semibold mb-4">
-          العملاء المتأخرون ({data.customers.length})
-        </h2>
-        {data.customers.length > 0 ? (
-          <Table columns={customerColumns} data={data.customers} />
-        ) : (
-          <p className="text-gray-500 text-center py-8">لا توجد متأخرات للعملاء</p>
-        )}
-      </Card>
+      {filters.type === 'ALL' || filters.type === 'CUSTOMERS' ? (
+        <Card className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">
+            العملاء المتأخرون ({data.customers.length})
+          </h2>
+          {data.customers.length > 0 ? (
+            <Table columns={customerColumns} data={data.customers} />
+          ) : (
+            <p className="text-gray-500 text-center py-8">لا توجد متأخرات للعملاء</p>
+          )}
+        </Card>
+      ) : null}
 
       {/* Suppliers Outstanding */}
-      <Card>
-        <h2 className="text-xl font-semibold mb-4">
-          الموردون المتأخرون ({data.suppliers.length})
-        </h2>
-        {data.suppliers.length > 0 ? (
-          <Table columns={supplierColumns} data={data.suppliers} />
-        ) : (
-          <p className="text-gray-500 text-center py-8">لا توجد متأخرات للموردين</p>
-        )}
-      </Card>
+      {filters.type === 'ALL' || filters.type === 'SUPPLIERS' ? (
+        <Card>
+          <h2 className="text-xl font-semibold mb-4">
+            الموردون المتأخرون ({data.suppliers.length})
+          </h2>
+          {data.suppliers.length > 0 ? (
+            <Table columns={supplierColumns} data={data.suppliers} />
+          ) : (
+            <p className="text-gray-500 text-center py-8">لا توجد متأخرات للموردين</p>
+          )}
+        </Card>
+      ) : null}
 
       {/* Print Styles */}
       <style jsx global>{`

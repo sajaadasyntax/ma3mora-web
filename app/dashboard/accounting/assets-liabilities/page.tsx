@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { formatCurrency, formatDateTime, paymentMethodLabels } from '@/lib/utils';
+import { generatePDF } from '@/lib/pdfUtils';
 
 export default function AssetsLiabilitiesPage() {
   const router = useRouter();
@@ -63,16 +64,151 @@ export default function AssetsLiabilitiesPage() {
     })),
   ];
 
+  const handlePrint = () => {
+    if (!data) return;
+    const currentDate = new Date().toLocaleDateString('ar-SD', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    const assetsRowsHtml = assetsRows.map((row, idx) => `
+      <tr>
+        <td>${row.label}</td>
+        <td>${formatCurrency(row.value)}</td>
+      </tr>
+    `).join('');
+
+    const liabilitiesRowsHtml = [
+      ...(parseFloat(data.liabilities.outboundDebts.total) > 0 ? [`
+        <tr>
+          <td>1</td>
+          <td>الديون الصادرة (علينا)</td>
+          <td>${formatCurrency(parseFloat(data.liabilities.outboundDebts.total))}</td>
+        </tr>
+      `] : []),
+      ...(data.liabilities.unpaidProcOrders.bySupplier || []).map((supplier: any, idx: number) => `
+        <tr>
+          <td>${idx + 2}</td>
+          <td>${supplier.supplierName}</td>
+          <td>${formatCurrency(parseFloat(supplier.totalOutstanding))}</td>
+        </tr>
+      `),
+    ].join('');
+
+    const html = `
+      <div class="header">
+        <h1>له و عليه (الأصول والالتزامات)</h1>
+        <div class="date">تاريخ التقرير: ${currentDate}</div>
+      </div>
+
+      <div class="section">
+        <h2>له (الأصول)</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>الوصف</th>
+              <th>القيمة</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${assetsRowsHtml}
+            <tr style="background-color: #d1fae5; font-weight: bold;">
+              <td>الإجمالي</td>
+              <td style="color: #065f46;">${formatCurrency(parseFloat(data.assets.total))}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>علينا (الالتزامات)</h2>
+        ${parseFloat(data.liabilities.outboundDebts.total) > 0 ? `
+        <h3>الديون الصادرة</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>ترتيب</th>
+              <th>الوصف</th>
+              <th>المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>الديون الصادرة (علينا)</td>
+              <td>${formatCurrency(parseFloat(data.liabilities.outboundDebts.total))}</td>
+            </tr>
+          </tbody>
+        </table>
+        ` : ''}
+        
+        ${data.liabilities.unpaidProcOrders.bySupplier && data.liabilities.unpaidProcOrders.bySupplier.length > 0 ? `
+        <h3>أوامر الشراء غير المدفوعة</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>ترتيب</th>
+              <th>المورد</th>
+              <th>المبلغ المتبقي</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.liabilities.unpaidProcOrders.bySupplier.map((supplier: any, idx: number) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>${supplier.supplierName}</td>
+                <td>${formatCurrency(parseFloat(supplier.totalOutstanding))}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        ` : ''}
+        
+        <table>
+          <tbody>
+            <tr style="background-color: #fee2e2; font-weight: bold;">
+              <td>الإجمالي</td>
+              <td style="color: #991b1b;">${formatCurrency(parseFloat(data.liabilities.total))}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <h2>الصافي</h2>
+        <table>
+          <tbody>
+            <tr style="background-color: #dbeafe; font-weight: bold; font-size: 18px;">
+              <td>الصافي (له - علينا)</td>
+              <td style="color: ${parseFloat(data.net) >= 0 ? '#065f46' : '#991b1b'};">
+                ${formatCurrency(parseFloat(data.net))}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    generatePDF(html, 'له_و_عليه');
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">له و عليه</h1>
-        <Button
-          variant="secondary"
-          onClick={() => router.push('/dashboard/accounting')}
-        >
-          العودة للمحاسبة
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handlePrint}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            🖨️ طباعة
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => router.push('/dashboard/accounting')}
+          >
+            العودة للمحاسبة
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
