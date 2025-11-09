@@ -153,6 +153,9 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  getDeliveryBatches: (id: string) =>
+    fetchAPI(`/sales/invoices/${id}/delivery-batches`),
+
   // Uploads
   uploadFile: (file: File) => {
     const form = new FormData();

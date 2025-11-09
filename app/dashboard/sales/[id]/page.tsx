@@ -34,6 +34,11 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [delivering, setDelivering] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [showDeliveryForm, setShowDeliveryForm] = useState(false);
+  const [deliveryBatches, setDeliveryBatches] = useState<any>(null);
+  const [loadingBatches, setLoadingBatches] = useState(false);
+  const [deliveryAllocations, setDeliveryAllocations] = useState<Record<string, Record<string, Record<string, number>>>>({});
+  const [deliveryNotes, setDeliveryNotes] = useState('');
   const [paymentData, setPaymentData] = useState({
     amount: '',
     method: 'CASH',
@@ -147,6 +152,116 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
       alert('تم تسليم الفاتورة بنجاح');
     } catch (error: any) {
       alert(error.message || 'فشل تسليم الفاتورة');
+    } finally {
+      setDelivering(false);
+    }
+  };
+
+  const loadDeliveryBatches = async () => {
+    setLoadingBatches(true);
+    try {
+      const data = await api.getDeliveryBatches(params.id);
+      setDeliveryBatches(data);
+      setShowDeliveryForm(true);
+      // Initialize allocations structure
+      const allocations: Record<string, Record<string, Record<string, number>>> = {};
+      for (const item of data.items) {
+        allocations[item.itemId] = {};
+        for (const expiryGroup of item.expiryGroups) {
+          allocations[item.itemId][expiryGroup.expiryDate || 'no-expiry'] = {};
+          for (const batch of expiryGroup.batches) {
+            allocations[item.itemId][expiryGroup.expiryDate || 'no-expiry'][batch.id] = 0;
+          }
+        }
+      }
+      setDeliveryAllocations(allocations);
+    } catch (error: any) {
+      alert(error.message || 'فشل تحميل الدفعات');
+    } finally {
+      setLoadingBatches(false);
+    }
+  };
+
+  const handleAllocationChange = (itemId: string, expiryDate: string | null, batchId: string, value: number) => {
+    setDeliveryAllocations(prev => ({
+      ...prev,
+      [itemId]: {
+        ...prev[itemId],
+        [expiryDate || 'no-expiry']: {
+          ...prev[itemId]?.[expiryDate || 'no-expiry'],
+          [batchId]: Math.max(0, value),
+        },
+      },
+    }));
+  };
+
+  const handlePartialDelivery = async () => {
+    if (!deliveryBatches) return;
+
+    // Build delivery payload
+    const items: Array<{ itemId: string; allocations: Array<{ batchId: string; quantity: number }>; giftQty?: number }> = [];
+
+    for (const item of deliveryBatches.items) {
+      const allocations: Array<{ batchId: string; quantity: number }> = [];
+      
+      for (const expiryGroup of item.expiryGroups) {
+        const expiryKey = expiryGroup.expiryDate || 'no-expiry';
+        const itemAllocations = deliveryAllocations[item.itemId]?.[expiryKey] || {};
+        
+        for (const [batchId, quantity] of Object.entries(itemAllocations)) {
+          if (quantity > 0) {
+            allocations.push({ batchId, quantity });
+          }
+        }
+      }
+
+      if (allocations.length > 0) {
+        items.push({ itemId: item.itemId, allocations });
+      }
+    }
+
+    if (items.length === 0) {
+      alert('الرجاء اختيار الكميات المراد تسليمها');
+      return;
+    }
+
+    // Validate quantities don't exceed available
+    for (const item of deliveryBatches.items) {
+      let totalAllocated = 0;
+      for (const expiryGroup of item.expiryGroups) {
+        const expiryKey = expiryGroup.expiryDate || 'no-expiry';
+        const itemAllocations = deliveryAllocations[item.itemId]?.[expiryKey] || {};
+        for (const [batchId, quantity] of Object.entries(itemAllocations)) {
+          totalAllocated += quantity;
+          // Find the batch to check available quantity
+          const batch = expiryGroup.batches.find((b: any) => b.id === batchId);
+          if (batch && quantity > parseFloat(batch.quantity)) {
+            alert(`الكمية المحددة للدفعة ${batchId} تتجاوز الكمية المتوفرة`);
+            return;
+          }
+        }
+      }
+      const remaining = parseFloat(item.remaining);
+      if (totalAllocated > remaining) {
+        alert(`الكمية المحددة للصنف ${item.itemName} تتجاوز المتبقي (${remaining})`);
+        return;
+      }
+    }
+
+    setDelivering(true);
+    try {
+      await api.partialDeliverInvoice(params.id, {
+        notes: deliveryNotes,
+        items,
+      });
+      await loadInvoice();
+      setShowDeliveryForm(false);
+      setDeliveryBatches(null);
+      setDeliveryAllocations({});
+      setDeliveryNotes('');
+      alert('تم تسليم البضاعة بنجاح');
+    } catch (error: any) {
+      alert(error.message || 'فشل تسليم البضاعة');
     } finally {
       setDelivering(false);
     }
@@ -395,12 +510,36 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <Button
-                        onClick={handleDeliver}
-                        disabled={delivering}
-                      >
-                        {delivering ? 'جاري التسليم...' : 'تسليم كامل'}
-                      </Button>
+                      {!showDeliveryForm ? (
+                        <>
+                          <Button
+                            onClick={loadDeliveryBatches}
+                            disabled={loadingBatches}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            {loadingBatches ? 'جاري التحميل...' : 'تسليم جزئي (اختيار الدفعات)'}
+                          </Button>
+                          <Button
+                            onClick={handleDeliver}
+                            disabled={delivering}
+                            variant="secondary"
+                          >
+                            {delivering ? 'جاري التسليم...' : 'تسليم كامل (FIFO تلقائي)'}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            setShowDeliveryForm(false);
+                            setDeliveryBatches(null);
+                            setDeliveryAllocations({});
+                            setDeliveryNotes('');
+                          }}
+                          variant="secondary"
+                        >
+                          إلغاء
+                        </Button>
+                      )}
                     </div>
                   )}
                 </>
@@ -546,6 +685,153 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
 
            </Card>
          )}
+
+        {/* Partial Delivery Form */}
+        {!isAuditor && user?.role === 'INVENTORY' && showDeliveryForm && deliveryBatches && (
+          <Card>
+            <h3 className="text-xl font-semibold mb-4">تسليم جزئي - اختيار الدفعات حسب تاريخ الصلاحية</h3>
+            
+            <div className="space-y-6">
+              {deliveryBatches.items.map((item: any) => {
+                const totalAllocated = Object.values(deliveryAllocations[item.itemId] || {})
+                  .flatMap((expiryAllocs: any) => Object.values(expiryAllocs))
+                  .reduce((sum: number, qty: number) => sum + qty, 0);
+                
+                return (
+                  <div key={item.itemId} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="mb-4 pb-3 border-b">
+                      <h4 className="text-lg font-semibold">{item.itemName}</h4>
+                      <div className="grid grid-cols-4 gap-4 mt-2 text-sm">
+                        <div>
+                          <span className="text-gray-600">المطلوب:</span>
+                          <span className="font-semibold mr-2">{parseFloat(item.totalOrdered)}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">المسلم:</span>
+                          <span className="font-semibold mr-2 text-green-600">{parseFloat(item.delivered)}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">المتبقي:</span>
+                          <span className="font-semibold mr-2 text-red-600">{parseFloat(item.remaining)}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">المحدد للتسليم:</span>
+                          <span className={`font-semibold mr-2 ${totalAllocated > parseFloat(item.remaining) ? 'text-red-600' : 'text-blue-600'}`}>
+                            {totalAllocated}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {item.expiryGroups.length === 0 ? (
+                      <p className="text-red-600 font-semibold">⚠️ لا توجد دفعات متوفرة لهذا الصنف</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {item.expiryGroups.map((expiryGroup: any, groupIdx: number) => {
+                          const expiryKey = expiryGroup.expiryDate || 'no-expiry';
+                          const groupAllocations = deliveryAllocations[item.itemId]?.[expiryKey] || {};
+                          const groupTotal = Object.values(groupAllocations).reduce((sum: number, qty: number) => sum + qty, 0);
+                          
+                          return (
+                            <div key={groupIdx} className="border rounded p-3 bg-white">
+                              <div className="flex justify-between items-center mb-3">
+                                <h5 className="font-semibold">
+                                  {expiryGroup.expiryDate 
+                                    ? `تاريخ الصلاحية: ${new Date(expiryGroup.expiryDate).toLocaleDateString('ar-SD')}`
+                                    : 'بدون تاريخ صلاحية'}
+                                </h5>
+                                <div className="text-sm">
+                                  <span className="text-gray-600">المتاح:</span>
+                                  <span className="font-semibold mr-2">{parseFloat(expiryGroup.totalQuantity)}</span>
+                                  <span className="text-gray-600 mr-4">المحدد:</span>
+                                  <span className={`font-semibold ${groupTotal > parseFloat(expiryGroup.totalQuantity) ? 'text-red-600' : 'text-blue-600'}`}>
+                                    {groupTotal}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                {expiryGroup.batches.map((batch: any) => {
+                                  const allocated = groupAllocations[batch.id] || 0;
+                                  const available = parseFloat(batch.quantity);
+                                  
+                                  return (
+                                    <div key={batch.id} className="flex items-center gap-4 p-2 bg-gray-50 rounded">
+                                      <div className="flex-1">
+                                        <div className="text-sm text-gray-600">
+                                          الكمية المتوفرة: <span className="font-semibold">{available}</span>
+                                          {batch.notes && <span className="mr-2">({batch.notes})</span>}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          تاريخ الاستلام: {new Date(batch.receivedAt).toLocaleDateString('ar-SD')}
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <label className="text-sm font-medium">الكمية:</label>
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          max={available}
+                                          step="0.01"
+                                          value={allocated}
+                                          onChange={(e) => {
+                                            const value = parseFloat(e.target.value) || 0;
+                                            handleAllocationChange(item.itemId, expiryGroup.expiryDate, batch.id, value);
+                                          }}
+                                          className="w-24 px-2 py-1 border border-gray-300 rounded text-right"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => handleAllocationChange(item.itemId, expiryGroup.expiryDate, batch.id, available)}
+                                          className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                                        >
+                                          الكل
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 pt-4 border-t">
+              <Input
+                label="ملاحظات (اختياري)"
+                value={deliveryNotes}
+                onChange={(e) => setDeliveryNotes(e.target.value)}
+              />
+              <div className="flex gap-2 mt-4">
+                <Button
+                  onClick={handlePartialDelivery}
+                  disabled={delivering}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {delivering ? 'جاري التسليم...' : 'تأكيد التسليم'}
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowDeliveryForm(false);
+                    setDeliveryBatches(null);
+                    setDeliveryAllocations({});
+                    setDeliveryNotes('');
+                  }}
+                  variant="secondary"
+                  disabled={delivering}
+                >
+                  إلغاء
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {invoice.notes && (
           <Card>
