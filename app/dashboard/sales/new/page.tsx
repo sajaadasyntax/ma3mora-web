@@ -118,7 +118,21 @@ export default function NewSalesInvoicePage() {
     const pricingTier = customer ? customer.type : formData.pricingTier;
 
     const subtotal = invoiceItems.reduce((sum, lineItem) => {
-      const prices = lineItem.item.prices.filter((p: any) => p.tier === pricingTier);
+      // Filter prices by tier and inventory (prefer inventory-specific over global)
+      const prices = lineItem.item.prices
+        .filter((p: any) => p.tier === pricingTier)
+        .filter((p: any) => {
+          // Include inventory-specific price OR global price (inventoryId is null)
+          return p.inventoryId === formData.inventoryId || p.inventoryId === null;
+        })
+        .sort((a: any, b: any) => {
+          // Prefer inventory-specific over global (null comes last)
+          if (a.inventoryId && !b.inventoryId) return -1;
+          if (!a.inventoryId && b.inventoryId) return 1;
+          // Then by validFrom (most recent first)
+          return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+        });
+      
       if (prices.length === 0) return sum;
       const price = parseFloat(prices[0].price);
       return sum + price * lineItem.quantity;
