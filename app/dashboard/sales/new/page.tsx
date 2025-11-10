@@ -204,36 +204,24 @@ export default function NewSalesInvoicePage() {
     const customer = formData.customerId ? customers.find((c) => c.id === formData.customerId) : null;
     const pricingTier = isAgentUser ? formData.pricingTier : (customer ? customer.type : formData.pricingTier);
 
-    // Check if this is a bakery wholesale customer order (eligible for offer prices)
-    const isBakeryWholesale = formData.section === 'BAKERY' && 
-                               customer && 
-                               customer.type === 'WHOLESALE' && 
-                               customer.division === 'BAKERY';
-
     const subtotal = invoiceItems.reduce((sum, lineItem) => {
       let price = 0;
 
-      // For bakery wholesale customers, check for offer price first
-      if (isBakeryWholesale && lineItem.item.offers && lineItem.item.offers.length > 0) {
-        // Use the most recent active offer
-        const now = new Date();
-        const activeOffers = lineItem.item.offers.filter((offer: any) => {
-          if (!offer.isActive) return false;
-          if (new Date(offer.validFrom) > now) return false;
-          if (offer.validTo && new Date(offer.validTo) < now) return false;
-          return true;
-        });
-        
-        if (activeOffers.length > 0) {
-          // Sort by validFrom (most recent first) and use the first one
-          activeOffers.sort((a: any, b: any) => 
-            new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime()
-          );
-          price = parseFloat(activeOffers[0].offerPrice);
+      // Check if an offer was explicitly selected for this item
+      if (lineItem.offerId && lineItem.item.offers) {
+        const selectedOffer = lineItem.item.offers.find((offer: any) => offer.id === lineItem.offerId);
+        if (selectedOffer) {
+          // Validate offer is active and valid
+          const now = new Date();
+          if (selectedOffer.isActive && 
+              new Date(selectedOffer.validFrom) <= now &&
+              (!selectedOffer.validTo || new Date(selectedOffer.validTo) >= now)) {
+            price = parseFloat(selectedOffer.offerPrice);
+          }
         }
       }
 
-      // If no offer price found, use regular price
+      // If no offer price found or selected, use regular price
       if (price === 0) {
         const prices = lineItem.item.prices
           .filter((p: any) => p.tier === pricingTier)
@@ -573,6 +561,12 @@ export default function NewSalesInvoicePage() {
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الصنف</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الكمية</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">السعر</th>
+                    {formData.section === 'BAKERY' && invoiceItems.some((item: any) => {
+                      const availableOffers = item.item?.offers ? getActiveOffers(item.item) : [];
+                      return availableOffers.length > 0;
+                    }) && (
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">اختيار العرض</th>
+                    )}
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الهدية</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500"></th>
                   </tr>
