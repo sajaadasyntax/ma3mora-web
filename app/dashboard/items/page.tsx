@@ -288,16 +288,37 @@ export default function ItemsPage() {
       },
     },
     {
-      key: 'agentPrice',
-      label: selectedInventory ? `سعر الوكيل (${inventories.find(i => i.id === selectedInventory)?.name || ''})` : 'سعر الوكيل',
+      key: 'agentWholesalePrice',
+      label: selectedInventory ? `سعر وكيل الجملة (${inventories.find(i => i.id === selectedInventory)?.name || ''})` : 'سعر وكيل الجملة',
       render: (_: any, row: any) => {
         const prices = getLatestPrices(row, selectedInventory);
-        if (prices.agent) {
-          const isInventorySpecific = prices.agent.inventoryId === selectedInventory;
+        const price = prices.agentWholesale || prices.agent; // Fallback to legacy AGENT
+        if (price) {
+          const isInventorySpecific = price.inventoryId === selectedInventory;
           return (
             <span className={isInventorySpecific ? 'font-semibold' : ''}>
-              {formatCurrency(prices.agent.price)}
-              {!isInventorySpecific && prices.agent.inventoryId === null && selectedInventory && (
+              {formatCurrency(price.price)}
+              {!isInventorySpecific && price.inventoryId === null && selectedInventory && (
+                <span className="text-xs text-gray-500 mr-1">(عام)</span>
+              )}
+            </span>
+          );
+        }
+        return '-';
+      },
+    },
+    {
+      key: 'agentRetailPrice',
+      label: selectedInventory ? `سعر وكيل القطاعي (${inventories.find(i => i.id === selectedInventory)?.name || ''})` : 'سعر وكيل القطاعي',
+      render: (_: any, row: any) => {
+        const prices = getLatestPrices(row, selectedInventory);
+        const price = prices.agentRetail || prices.agent; // Fallback to legacy AGENT
+        if (price) {
+          const isInventorySpecific = price.inventoryId === selectedInventory;
+          return (
+            <span className={isInventorySpecific ? 'font-semibold' : ''}>
+              {formatCurrency(price.price)}
+              {!isInventorySpecific && price.inventoryId === null && selectedInventory && (
                 <span className="text-xs text-gray-500 mr-1">(عام)</span>
               )}
             </span>
