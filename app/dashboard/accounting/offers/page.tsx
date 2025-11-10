@@ -74,10 +74,14 @@ export default function OffersPage() {
         api.getOffers(),
         api.getItems('BAKERY'),
       ]);
-      setOffers(offersData);
-      setItems(itemsData);
+      setOffers(offersData || []);
+      setItems(itemsData || []);
+      if (!itemsData || itemsData.length === 0) {
+        console.warn('No bakery items found. Make sure there are items in the BAKERY section.');
+      }
     } catch (error) {
       console.error('Error loading data:', error);
+      alert('فشل تحميل البيانات. يرجى المحاولة مرة أخرى.');
     } finally {
       setLoading(false);
     }
@@ -94,6 +98,14 @@ export default function OffersPage() {
     } catch (error) {
       console.error('Error loading offers:', error);
     }
+  };
+
+  const handleShowAddOffer = () => {
+    // Ensure items are loaded before showing the modal
+    if (items.length === 0) {
+      loadData();
+    }
+    setShowAddOffer(true);
   };
 
   const handleAddOffer = async (e: React.FormEvent) => {
@@ -235,7 +247,7 @@ export default function OffersPage() {
           <Button variant="secondary" onClick={() => router.push('/dashboard/accounting')}>
             العودة للمحاسبة
           </Button>
-          <Button onClick={() => setShowAddOffer(true)}>
+          <Button onClick={handleShowAddOffer}>
             إضافة عرض جديد
           </Button>
         </div>
@@ -251,9 +263,12 @@ export default function OffersPage() {
             onChange={(e) => setFilterItemId(e.target.value)}
             options={[
               { value: '', label: 'جميع الأصناف' },
-              ...items.map((item) => ({ value: item.id, label: item.name })),
+              ...items.map((item: any) => ({ value: item.id, label: item.name })),
             ]}
           />
+          {items.length === 0 && !loading && (
+            <p className="text-sm text-gray-500 col-span-3">لا توجد أصناف في قسم الأفران</p>
+          )}
           <Select
             label="الحالة"
             value={filterActive === undefined ? '' : filterActive ? 'true' : 'false'}
@@ -297,10 +312,14 @@ export default function OffersPage() {
                 onChange={(e) => setOfferForm({ ...offerForm, itemId: e.target.value })}
                 required
                 options={[
-                  { value: '', label: 'اختر الصنف' },
-                  ...items.map((item) => ({ value: item.id, label: item.name })),
+                  { value: '', label: items.length === 0 ? 'جاري التحميل...' : 'اختر الصنف' },
+                  ...items.map((item: any) => ({ value: item.id, label: item.name })),
                 ]}
+                disabled={items.length === 0}
               />
+              {items.length === 0 && !loading && (
+                <p className="text-sm text-red-600">لا توجد أصناف في قسم الأفران. يرجى إضافة أصناف أولاً.</p>
+              )}
               <Input
                 label="سعر العرض"
                 type="number"
