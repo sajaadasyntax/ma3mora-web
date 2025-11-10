@@ -642,9 +642,6 @@ export default function NewSalesInvoicePage() {
                                   <span className="text-xs text-orange-600 block">
                                     عرض متاح: {formatCurrency(parseFloat(availableOffers[0].offerPrice))}
                                   </span>
-                                  <span className="text-xs text-gray-500 block">
-                                    (لعملاء جملة أفران فقط)
-                                  </span>
                                 </div>
                               )}
                             </div>
@@ -652,6 +649,27 @@ export default function NewSalesInvoicePage() {
                             '-'
                           )}
                         </td>
+                        {formData.section === 'BAKERY' && availableOffers.length > 0 && (
+                          <td className="px-4 py-2 text-sm">
+                            <select
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                              value={item.offerId || ''}
+                              onChange={(e) => {
+                                const updatedItems = [...invoiceItems];
+                                updatedItems[index] = { ...item, offerId: e.target.value || undefined };
+                                setInvoiceItems(updatedItems);
+                              }}
+                            >
+                              <option value="">سعر عادي</option>
+                              {availableOffers.map((offer: any) => (
+                                <option key={offer.id} value={offer.id}>
+                                  عرض: {formatCurrency(parseFloat(offer.offerPrice))}
+                                  {offer.validTo && ` (حتى ${new Date(offer.validTo).toLocaleDateString('ar-SD')})`}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                        )}
                         <td className="px-4 py-2 text-sm">
                           {item.giftQty > 0 ? `${item.giftQty} (قديم)` : item.giftItem ? `${item.giftQuantity} × ${item.giftItem.name}` : '-'}
                         </td>
