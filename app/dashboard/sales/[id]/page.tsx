@@ -693,7 +693,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
             
             <div className="space-y-6">
               {deliveryBatches.items.map((item: any) => {
-                const allocations = Object.values(deliveryAllocations[item.itemId] || {}) as Record<string, Record<string, number>>[];
+                const allocations = Object.values(deliveryAllocations[item.itemId] || {}) as Record<string, number>[];
                 const quantities = allocations.flatMap((expiryAllocs) => Object.values(expiryAllocs) as number[]);
                 const totalAllocated = quantities.reduce((sum: number, qty: number) => sum + (qty || 0), 0);
                 
