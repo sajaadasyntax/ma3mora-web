@@ -590,13 +590,16 @@ export default function NewSalesInvoicePage() {
                       availableOffers = getActiveOffers(item.item);
                     }
                     
-                    // Apply offer price if conditions are met
-                    if (isBakeryWholesale && availableOffers.length > 0) {
-                      displayPrice = parseFloat(availableOffers[0].offerPrice);
-                      isOfferPrice = true;
+                    // Check if an offer was selected for this item
+                    if (item.offerId && availableOffers.length > 0) {
+                      const selectedOffer = availableOffers.find((offer: any) => offer.id === item.offerId);
+                      if (selectedOffer) {
+                        displayPrice = parseFloat(selectedOffer.offerPrice);
+                        isOfferPrice = true;
+                      }
                     }
                     
-                    // Use regular price if no offer applied
+                    // Use regular price if no offer selected or offer not found
                     if (displayPrice === 0) {
                       const prices = item.item.prices
                         .filter((p: any) => p.tier === pricingTier)
