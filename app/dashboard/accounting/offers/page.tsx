@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { useUser } from '@/lib/userContext';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
@@ -33,9 +34,17 @@ interface Offer {
 
 export default function OffersPage() {
   const router = useRouter();
+  const { user } = useUser();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Check if user has access
+  useEffect(() => {
+    if (user && user.role !== 'ACCOUNTANT' && user.role !== 'MANAGER') {
+      router.push('/dashboard/accounting');
+    }
+  }, [user, router]);
   const [showAddOffer, setShowAddOffer] = useState(false);
   const [showEditOffer, setShowEditOffer] = useState(false);
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null);

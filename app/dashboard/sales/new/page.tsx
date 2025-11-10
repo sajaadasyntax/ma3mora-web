@@ -60,6 +60,13 @@ export default function NewSalesInvoicePage() {
     }
   }, [formData.section]);
 
+  // Reload items when customer changes to ensure offers are available
+  useEffect(() => {
+    if (formData.section === 'BAKERY' && customers.length > 0) {
+      loadItems('BAKERY');
+    }
+  }, [formData.customerId]);
+
   const loadData = async () => {
     try {
       const inventoriesData = await api.getInventories();
@@ -77,7 +84,22 @@ export default function NewSalesInvoicePage() {
   const loadItems = async (section: string) => {
     try {
       const data = await api.getItems(section);
-      setItems(data);
+      // If bakery section, load offers for each item
+      if (section === 'BAKERY') {
+        const itemsWithOffers = await Promise.all(
+          data.map(async (item: any) => {
+            try {
+              const offers = await api.getItemOffers(item.id);
+              return { ...item, offers: offers || [] };
+            } catch (error) {
+              return { ...item, offers: [] };
+            }
+          })
+        );
+        setItems(itemsWithOffers);
+      } else {
+        setItems(data);
+      }
     } catch (error) {
       console.error('Error loading items:', error);
     }
@@ -122,24 +144,55 @@ export default function NewSalesInvoicePage() {
     const customer = formData.customerId ? customers.find((c) => c.id === formData.customerId) : null;
     const pricingTier = isAgentUser ? formData.pricingTier : (customer ? customer.type : formData.pricingTier);
 
+    // Check if this is a bakery wholesale customer order (eligible for offer prices)
+    const isBakeryWholesale = formData.section === 'BAKERY' && 
+                               customer && 
+                               customer.type === 'WHOLESALE' && 
+                               customer.division === 'BAKERY';
+
     const subtotal = invoiceItems.reduce((sum, lineItem) => {
-      // Filter prices by tier and inventory (prefer inventory-specific over global)
-      const prices = lineItem.item.prices
-        .filter((p: any) => p.tier === pricingTier)
-        .filter((p: any) => {
-          // Include inventory-specific price OR global price (inventoryId is null)
-          return p.inventoryId === formData.inventoryId || p.inventoryId === null;
-        })
-        .sort((a: any, b: any) => {
-          // Prefer inventory-specific over global (null comes last)
-          if (a.inventoryId && !b.inventoryId) return -1;
-          if (!a.inventoryId && b.inventoryId) return 1;
-          // Then by validFrom (most recent first)
-          return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+      let price = 0;
+
+      // For bakery wholesale customers, check for offer price first
+      if (isBakeryWholesale && lineItem.item.offers && lineItem.item.offers.length > 0) {
+        // Use the most recent active offer
+        const now = new Date();
+        const activeOffers = lineItem.item.offers.filter((offer: any) => {
+          if (!offer.isActive) return false;
+          if (new Date(offer.validFrom) > now) return false;
+          if (offer.validTo && new Date(offer.validTo) < now) return false;
+          return true;
         });
-      
-      if (prices.length === 0) return sum;
-      const price = parseFloat(prices[0].price);
+        
+        if (activeOffers.length > 0) {
+          // Sort by validFrom (most recent first) and use the first one
+          activeOffers.sort((a: any, b: any) => 
+            new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime()
+          );
+          price = parseFloat(activeOffers[0].offerPrice);
+        }
+      }
+
+      // If no offer price found, use regular price
+      if (price === 0) {
+        const prices = lineItem.item.prices
+          .filter((p: any) => p.tier === pricingTier)
+          .filter((p: any) => {
+            // Include inventory-specific price OR global price (inventoryId is null)
+            return p.inventoryId === formData.inventoryId || p.inventoryId === null;
+          })
+          .sort((a: any, b: any) => {
+            // Prefer inventory-specific over global (null comes last)
+            if (a.inventoryId && !b.inventoryId) return -1;
+            if (!a.inventoryId && b.inventoryId) return 1;
+            // Then by validFrom (most recent first)
+            return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+          });
+        
+        if (prices.length === 0) return sum;
+        price = parseFloat(prices[0].price);
+      }
+
       return sum + price * lineItem.quantity;
     }, 0);
 
@@ -422,37 +475,97 @@ export default function NewSalesInvoicePage() {
                   <tr>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الصنف</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الكمية</th>
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">السعر</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الهدية</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {invoiceItems.map((item, index) => (
-                    <tr key={index}>
-                      <td className="px-4 py-2 text-sm">
-                        {item.item.name}
-                        {item.giftItem && (
-                          <div className="text-xs text-green-600 mt-1">
-                            هدية: {item.giftQuantity} × {item.giftItem.name}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-2 text-sm">{item.quantity}</td>
-                      <td className="px-4 py-2 text-sm">
-                        {item.giftQty > 0 ? `${item.giftQty} (قديم)` : item.giftItem ? `${item.giftQuantity} × ${item.giftItem.name}` : '-'}
-                      </td>
-                      <td className="px-4 py-2 text-sm">
-                        <Button
-                          type="button"
-                          variant="danger"
-                          size="sm"
-                          onClick={() => removeItem(index)}
-                        >
-                          حذف
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {invoiceItems.map((item, index) => {
+                    const customer = formData.customerId ? customers.find((c) => c.id === formData.customerId) : null;
+                    const pricingTier = isAgentUser ? formData.pricingTier : (customer ? customer.type : formData.pricingTier);
+                    const isBakeryWholesale = formData.section === 'BAKERY' && 
+                                             customer && 
+                                             customer.type === 'WHOLESALE' && 
+                                             customer.division === 'BAKERY';
+                    
+                    // Calculate price for display
+                    let displayPrice = 0;
+                    let isOfferPrice = false;
+                    
+                    if (isBakeryWholesale && item.item.offers && item.item.offers.length > 0) {
+                      const now = new Date();
+                      const activeOffers = item.item.offers.filter((offer: any) => {
+                        if (!offer.isActive) return false;
+                        if (new Date(offer.validFrom) > now) return false;
+                        if (offer.validTo && new Date(offer.validTo) < now) return false;
+                        return true;
+                      });
+                      
+                      if (activeOffers.length > 0) {
+                        activeOffers.sort((a: any, b: any) => 
+                          new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime()
+                        );
+                        displayPrice = parseFloat(activeOffers[0].offerPrice);
+                        isOfferPrice = true;
+                      }
+                    }
+                    
+                    if (displayPrice === 0) {
+                      const prices = item.item.prices
+                        .filter((p: any) => p.tier === pricingTier)
+                        .filter((p: any) => p.inventoryId === formData.inventoryId || p.inventoryId === null)
+                        .sort((a: any, b: any) => {
+                          if (a.inventoryId && !b.inventoryId) return -1;
+                          if (!a.inventoryId && b.inventoryId) return 1;
+                          return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+                        });
+                      if (prices.length > 0) {
+                        displayPrice = parseFloat(prices[0].price);
+                      }
+                    }
+
+                    return (
+                      <tr key={index}>
+                        <td className="px-4 py-2 text-sm">
+                          {item.item.name}
+                          {item.giftItem && (
+                            <div className="text-xs text-green-600 mt-1">
+                              هدية: {item.giftQuantity} × {item.giftItem.name}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-sm">{item.quantity}</td>
+                        <td className="px-4 py-2 text-sm">
+                          {displayPrice > 0 ? (
+                            <div>
+                              <span className={isOfferPrice ? 'text-pink-600 font-semibold' : ''}>
+                                {formatCurrency(displayPrice)}
+                              </span>
+                              {isOfferPrice && (
+                                <span className="text-xs text-pink-500 block">سعر العرض</span>
+                              )}
+                            </div>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="px-4 py-2 text-sm">
+                          {item.giftQty > 0 ? `${item.giftQty} (قديم)` : item.giftItem ? `${item.giftQuantity} × ${item.giftItem.name}` : '-'}
+                        </td>
+                        <td className="px-4 py-2 text-sm">
+                          <Button
+                            type="button"
+                            variant="danger"
+                            size="sm"
+                            onClick={() => removeItem(index)}
+                          >
+                            حذف
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
 
