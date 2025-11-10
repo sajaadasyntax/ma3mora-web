@@ -28,12 +28,16 @@ export default function ItemsPage() {
     section: 'GROCERY',
     wholesalePrice: '',
     retailPrice: '',
-    agentPrice: '',
+    agentWholesalePrice: '',
+    agentRetailPrice: '',
+    agentPrice: '', // Deprecated: kept for backward compatibility
   });
   const [priceData, setPriceData] = useState({
     wholesalePrice: '',
     retailPrice: '',
-    agentPrice: '',
+    agentWholesalePrice: '',
+    agentRetailPrice: '',
+    agentPrice: '', // Deprecated: kept for backward compatibility
     inventoryId: '',
   });
 
@@ -92,7 +96,9 @@ export default function ItemsPage() {
         ...formData,
         wholesalePrice: parseFloat(formData.wholesalePrice),
         retailPrice: parseFloat(formData.retailPrice),
-        agentPrice: formData.agentPrice ? parseFloat(formData.agentPrice) : undefined,
+        agentWholesalePrice: formData.agentWholesalePrice ? parseFloat(formData.agentWholesalePrice) : undefined,
+        agentRetailPrice: formData.agentRetailPrice ? parseFloat(formData.agentRetailPrice) : undefined,
+        agentPrice: formData.agentPrice ? parseFloat(formData.agentPrice) : undefined, // Legacy
       });
       setShowForm(false);
       setFormData({
@@ -100,6 +106,8 @@ export default function ItemsPage() {
         section: 'GROCERY',
         wholesalePrice: '',
         retailPrice: '',
+        agentWholesalePrice: '',
+        agentRetailPrice: '',
         agentPrice: '',
       });
       await loadItems();
@@ -117,11 +125,13 @@ export default function ItemsPage() {
       await api.updateItemPrices(itemId, {
         wholesalePrice: priceData.wholesalePrice ? parseFloat(priceData.wholesalePrice) : undefined,
         retailPrice: priceData.retailPrice ? parseFloat(priceData.retailPrice) : undefined,
-        agentPrice: priceData.agentPrice ? parseFloat(priceData.agentPrice) : undefined,
+        agentWholesalePrice: priceData.agentWholesalePrice ? parseFloat(priceData.agentWholesalePrice) : undefined,
+        agentRetailPrice: priceData.agentRetailPrice ? parseFloat(priceData.agentRetailPrice) : undefined,
+        agentPrice: priceData.agentPrice ? parseFloat(priceData.agentPrice) : undefined, // Legacy
         inventoryId: priceData.inventoryId || undefined,
       });
       setEditingPrices(null);
-      setPriceData({ wholesalePrice: '', retailPrice: '', agentPrice: '', inventoryId: '' });
+      setPriceData({ wholesalePrice: '', retailPrice: '', agentWholesalePrice: '', agentRetailPrice: '', agentPrice: '', inventoryId: '' });
       await loadItems();
       alert('تم تحديث الأسعار بنجاح');
     } catch (error: any) {
@@ -184,6 +194,27 @@ export default function ItemsPage() {
         return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
       })[0];
     
+    const agentWholesale = pricesForInventory
+      .filter((p: any) => p.tier === 'AGENT_WHOLESALE')
+      .sort((a: any, b: any) => {
+        // Prefer inventory-specific over global
+        if (a.inventoryId && !b.inventoryId) return -1;
+        if (!a.inventoryId && b.inventoryId) return 1;
+        // Then by validFrom
+        return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+      })[0];
+    
+    const agentRetail = pricesForInventory
+      .filter((p: any) => p.tier === 'AGENT_RETAIL')
+      .sort((a: any, b: any) => {
+        // Prefer inventory-specific over global
+        if (a.inventoryId && !b.inventoryId) return -1;
+        if (!a.inventoryId && b.inventoryId) return 1;
+        // Then by validFrom
+        return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+      })[0];
+    
+    // Legacy: fallback to AGENT tier if new tiers not available
     const agent = pricesForInventory
       .filter((p: any) => p.tier === 'AGENT')
       .sort((a: any, b: any) => {
@@ -194,7 +225,7 @@ export default function ItemsPage() {
         return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
       })[0];
     
-    return { wholesale, retail, agent };
+    return { wholesale, retail, agentWholesale, agentRetail, agent };
   };
 
   const columns = [
@@ -411,11 +442,20 @@ export default function ItemsPage() {
             />
 
             <Input
-              label="سعر الوكيل (اختياري)"
+              label="سعر وكيل الجملة (اختياري)"
               type="number"
               step="0.01"
-              value={formData.agentPrice}
-              onChange={(e) => setFormData({ ...formData, agentPrice: e.target.value })}
+              value={formData.agentWholesalePrice}
+              onChange={(e) => setFormData({ ...formData, agentWholesalePrice: e.target.value })}
+              placeholder="إذا لم يتم تحديده، سيستخدم سعر الجملة"
+            />
+
+            <Input
+              label="سعر وكيل القطاعي (اختياري)"
+              type="number"
+              step="0.01"
+              value={formData.agentRetailPrice}
+              onChange={(e) => setFormData({ ...formData, agentRetailPrice: e.target.value })}
               placeholder="إذا لم يتم تحديده، سيستخدم سعر القطاعي"
             />
 
@@ -458,11 +498,20 @@ export default function ItemsPage() {
           />
 
           <Input
-            label="سعر الوكيل الجديد (اختياري)"
+            label="سعر وكيل الجملة الجديد (اختياري)"
             type="number"
             step="0.01"
-            value={priceData.agentPrice}
-            onChange={(e) => setPriceData({ ...priceData, agentPrice: e.target.value })}
+            value={priceData.agentWholesalePrice}
+            onChange={(e) => setPriceData({ ...priceData, agentWholesalePrice: e.target.value })}
+            placeholder="اتركه فارغاً للحفاظ على السعر الحالي"
+          />
+
+          <Input
+            label="سعر وكيل القطاعي الجديد (اختياري)"
+            type="number"
+            step="0.01"
+            value={priceData.agentRetailPrice}
+            onChange={(e) => setPriceData({ ...priceData, agentRetailPrice: e.target.value })}
             placeholder="اتركه فارغاً للحفاظ على السعر الحالي"
           />
 
@@ -477,7 +526,7 @@ export default function ItemsPage() {
               variant="secondary" 
               onClick={() => {
                 setEditingPrices(null);
-                setPriceData({ wholesalePrice: '', retailPrice: '', agentPrice: '', inventoryId: '' });
+                setPriceData({ wholesalePrice: '', retailPrice: '', agentWholesalePrice: '', agentRetailPrice: '', agentPrice: '', inventoryId: '' });
               }}
               disabled={updatingPrices}
             >

@@ -32,7 +32,7 @@ export default function NewSalesInvoicePage() {
     inventoryId: '',
     section: getUserSection(),
     customerId: '',
-    pricingTier: (isAgentUser ? 'AGENT' : 'RETAIL') as 'RETAIL' | 'WHOLESALE' | 'AGENT', // Default pricing tier when no customer
+    pricingTier: (isAgentUser ? 'AGENT_RETAIL' : 'RETAIL') as 'RETAIL' | 'WHOLESALE' | 'AGENT' | 'AGENT_WHOLESALE' | 'AGENT_RETAIL', // Default pricing tier when no customer
     discount: 0,
     notes: '',
   });
@@ -144,6 +144,22 @@ export default function NewSalesInvoicePage() {
 
     const item = items.find((i) => i.id === currentItem.itemId);
     if (!item) return;
+
+    // If bakery section and item doesn't have offers loaded, try to load them
+    if (formData.section === 'BAKERY' && (!item.offers || item.offers.length === 0)) {
+      api.getItemOffers(item.id).then(offers => {
+        const updatedItem = { ...item, offers: offers || [] };
+        const updatedItems = items.map((i: any) => i.id === item.id ? updatedItem : i);
+        setItems(updatedItems);
+        
+        // Update the item in invoiceItems if it's already there
+        setInvoiceItems(prevItems => prevItems.map(invItem => 
+          invItem.itemId === item.id ? { ...invItem, item: updatedItem } : invItem
+        ));
+      }).catch(error => {
+        console.error('Error loading offers for item:', error);
+      });
+    }
 
     const giftItem = currentItem.giftItemId ? items.find((i) => i.id === currentItem.giftItemId) : null;
     setInvoiceItems([...invoiceItems, { ...currentItem, item, giftItem }]);
@@ -382,13 +398,12 @@ export default function NewSalesInvoicePage() {
                   <label className="block text-xs text-gray-500 mb-1">نوع السعر</label>
                   <Select
                     value={formData.pricingTier}
-                    onChange={(e) => setFormData({ ...formData, pricingTier: e.target.value as 'RETAIL' | 'WHOLESALE' | 'AGENT' })}
+                    onChange={(e) => setFormData({ ...formData, pricingTier: e.target.value as 'RETAIL' | 'WHOLESALE' | 'AGENT' | 'AGENT_WHOLESALE' | 'AGENT_RETAIL' })}
                     options={
                       isAgentUser
                         ? [
-                            { value: 'AGENT', label: 'وكيل' },
-                            { value: 'WHOLESALE', label: 'جملة' },
-                            { value: 'RETAIL', label: 'قطاعي' },
+                            { value: 'AGENT_RETAIL', label: 'وكيل قطاعي' },
+                            { value: 'AGENT_WHOLESALE', label: 'وكيل جملة' },
                           ]
                         : [
                             { value: 'WHOLESALE', label: 'جملة' },
