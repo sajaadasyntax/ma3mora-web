@@ -362,6 +362,30 @@ export const api = {
   getEmployeeReport: (params?: { startDate?: string; endDate?: string; employeeId?: string }) =>
     fetchAPI('/employees/report', { params }),
 
+  // Offers
+  getOffers: (params?: { itemId?: string; isActive?: boolean }) =>
+    fetchAPI('/offers', { params }),
+  
+  getItemOffers: (itemId: string) =>
+    fetchAPI(`/offers/item/${itemId}`),
+  
+  createOffer: (data: any) =>
+    fetchAPI('/offers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  
+  updateOffer: (id: string, data: any) =>
+    fetchAPI(`/offers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  
+  deleteOffer: (id: string) =>
+    fetchAPI(`/offers/${id}`, {
+      method: 'DELETE',
+    }),
+
   // Reports
   getSalesReports: (params?: any) =>
     fetchAPI('/sales/reports', { params }),
