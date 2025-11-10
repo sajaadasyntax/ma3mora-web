@@ -363,8 +363,12 @@ export const api = {
     fetchAPI('/employees/report', { params }),
 
   // Offers
-  getOffers: (params?: { itemId?: string; isActive?: boolean }) =>
-    fetchAPI('/offers', { params }),
+  getOffers: (params?: { itemId?: string; isActive?: boolean }) => {
+    const queryParams: Record<string, string> = {};
+    if (params?.itemId) queryParams.itemId = params.itemId;
+    if (params?.isActive !== undefined) queryParams.isActive = params.isActive.toString();
+    return fetchAPI('/offers', { params: Object.keys(queryParams).length > 0 ? queryParams : undefined });
+  },
   
   getItemOffers: (itemId: string) =>
     fetchAPI(`/offers/item/${itemId}`),
