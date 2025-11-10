@@ -694,7 +694,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
             <div className="space-y-6">
               {deliveryBatches.items.map((item: any) => {
                 const totalAllocated = Object.values(deliveryAllocations[item.itemId] || {})
-                  .flatMap((expiryAllocs: any) => Object.values(expiryAllocs))
+                  .flatMap((expiryAllocs: any) => Object.values(expiryAllocs) as number[])
                   .reduce((sum: number, qty: number) => sum + qty, 0);
                 
                 return (
@@ -730,7 +730,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
                         {item.expiryGroups.map((expiryGroup: any, groupIdx: number) => {
                           const expiryKey = expiryGroup.expiryDate || 'no-expiry';
                           const groupAllocations = deliveryAllocations[item.itemId]?.[expiryKey] || {};
-                          const groupTotal = Object.values(groupAllocations).reduce((sum: number, qty: number) => sum + qty, 0);
+                          const groupTotal = (Object.values(groupAllocations) as number[]).reduce((sum: number, qty: number) => sum + qty, 0);
                           
                           return (
                             <div key={groupIdx} className="border rounded p-3 bg-white">
