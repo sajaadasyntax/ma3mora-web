@@ -60,12 +60,19 @@ export default function NewSalesInvoicePage() {
     }
   }, [formData.section]);
 
-  // Reload items when customer changes to ensure offers are available
+  // Reload items with offers when customer changes (especially for bakery wholesale)
   useEffect(() => {
     if (formData.section === 'BAKERY' && customers.length > 0) {
-      loadItems('BAKERY');
+      const customer = formData.customerId ? customers.find((c) => c.id === formData.customerId) : null;
+      // Reload items to ensure offers are available, especially for wholesale customers
+      if (customer && customer.type === 'WHOLESALE' && customer.division === 'BAKERY') {
+        loadItems('BAKERY');
+      } else if (!formData.customerId) {
+        // Also reload when customer is cleared
+        loadItems('BAKERY');
+      }
     }
-  }, [formData.customerId]);
+  }, [formData.customerId, customers.length]);
 
   const loadData = async () => {
     try {
@@ -84,7 +91,7 @@ export default function NewSalesInvoicePage() {
   const loadItems = async (section: string) => {
     try {
       const data = await api.getItems(section);
-      // If bakery section, load offers for each item
+      // Always load offers for bakery section items
       if (section === 'BAKERY') {
         const itemsWithOffers = await Promise.all(
           data.map(async (item: any) => {
@@ -92,11 +99,21 @@ export default function NewSalesInvoicePage() {
               const offers = await api.getItemOffers(item.id);
               return { ...item, offers: offers || [] };
             } catch (error) {
+              console.error(`Error loading offers for item ${item.id}:`, error);
               return { ...item, offers: [] };
             }
           })
         );
         setItems(itemsWithOffers);
+        
+        // Update offers for items already in invoiceItems
+        setInvoiceItems(prevItems => prevItems.map(invoiceItem => {
+          const updatedItem = itemsWithOffers.find((i: any) => i.id === invoiceItem.itemId);
+          if (updatedItem) {
+            return { ...invoiceItem, item: updatedItem };
+          }
+          return invoiceItem;
+        }));
       } else {
         setItems(data);
       }
