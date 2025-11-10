@@ -44,6 +44,7 @@ export default function NewSalesInvoicePage() {
     giftQty: 0, // Deprecated: kept for backward compatibility
     giftItemId: '', // New: The item being given as gift
     giftQuantity: 0, // New: Quantity of the gift item
+    offerId: '', // Optional: ID of the offer to apply
   });
 
   useEffect(() => {
@@ -163,7 +164,7 @@ export default function NewSalesInvoicePage() {
 
     const giftItem = currentItem.giftItemId ? items.find((i) => i.id === currentItem.giftItemId) : null;
     setInvoiceItems([...invoiceItems, { ...currentItem, item, giftItem }]);
-    setCurrentItem({ itemId: '', quantity: 1, giftQty: 0, giftItemId: '', giftQuantity: 0 });
+    setCurrentItem({ itemId: '', quantity: 1, giftQty: 0, giftItemId: '', giftQuantity: 0, offerId: '' });
   };
 
   const removeItem = (index: number) => {
