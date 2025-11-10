@@ -366,7 +366,7 @@ export const api = {
   getOffers: (params?: { itemId?: string; isActive?: boolean }) => {
     const queryParams: Record<string, string> = {};
     if (params?.itemId) queryParams.itemId = params.itemId;
-    if (params?.isActive !== undefined) queryParams.isActive = params.isActive.toString();
+    if (params?.isActive !== undefined) queryParams.isActive = String(params.isActive);
     return fetchAPI('/offers', { params: Object.keys(queryParams).length > 0 ? queryParams : undefined });
   },
   

@@ -92,32 +92,7 @@ export default function NewSalesInvoicePage() {
   const loadItems = async (section: string) => {
     try {
       const data = await api.getItems(section);
-      // Always load offers for bakery section items
-      if (section === 'BAKERY') {
-        const itemsWithOffers = await Promise.all(
-          data.map(async (item: any) => {
-            try {
-              const offers = await api.getItemOffers(item.id);
-              return { ...item, offers: offers || [] };
-            } catch (error) {
-              console.error(`Error loading offers for item ${item.id}:`, error);
-              return { ...item, offers: [] };
-            }
-          })
-        );
-        setItems(itemsWithOffers);
-        
-        // Update offers for items already in invoiceItems
-        setInvoiceItems(prevItems => prevItems.map(invoiceItem => {
-          const updatedItem = itemsWithOffers.find((i: any) => i.id === invoiceItem.itemId);
-          if (updatedItem) {
-            return { ...invoiceItem, item: updatedItem };
-          }
-          return invoiceItem;
-        }));
-      } else {
-        setItems(data);
-      }
+      setItems(data);
     } catch (error) {
       console.error('Error loading items:', error);
     }
@@ -530,12 +505,16 @@ export default function NewSalesInvoicePage() {
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الصنف</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الكمية</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">السعر</th>
-                    {formData.section === 'BAKERY' && invoiceItems.some((item: any) => {
-                      const availableOffers = item.item?.offers ? getActiveOffers(item.item) : [];
-                      return availableOffers.length > 0;
-                    }) && (
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">اختيار العرض</th>
-                    )}
+                    {(() => {
+                      const customer = formData.customerId ? customers.find((c) => c.id === formData.customerId) : null;
+                      const isBakeryWholesale = formData.section === 'BAKERY' && 
+                                               customer && 
+                                               customer.type === 'WHOLESALE' && 
+                                               customer.division === 'BAKERY';
+                      return isBakeryWholesale ? (
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">اختيار السعر</th>
+                      ) : null;
+                    })()}
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">الهدية</th>
                     <th className="px-4 py-2 text-right text-xs font-medium text-gray-500"></th>
                   </tr>
