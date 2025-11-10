@@ -44,7 +44,7 @@ export default function NewSalesInvoicePage() {
     giftQty: 0, // Deprecated: kept for backward compatibility
     giftItemId: '', // New: The item being given as gift
     giftQuantity: 0, // New: Quantity of the gift item
-    offerId: '', // Optional: ID of the offer to apply
+    priceTier: '', // For bakery wholesale: 'WHOLESALE', 'OFFER_1', or 'OFFER_2'
   });
 
   useEffect(() => {
@@ -146,55 +146,33 @@ export default function NewSalesInvoicePage() {
     const item = items.find((i) => i.id === currentItem.itemId);
     if (!item) return;
 
-    // If bakery section and item doesn't have offers loaded, try to load them
-    if (formData.section === 'BAKERY' && (!item.offers || item.offers.length === 0)) {
-      api.getItemOffers(item.id).then(offers => {
-        const updatedItem = { ...item, offers: offers || [] };
-        const updatedItems = items.map((i: any) => i.id === item.id ? updatedItem : i);
-        setItems(updatedItems);
-        
-        // Update the item in invoiceItems if it's already there
-        setInvoiceItems(prevItems => prevItems.map(invItem => 
-          invItem.itemId === item.id ? { ...invItem, item: updatedItem } : invItem
-        ));
-      }).catch(error => {
-        console.error('Error loading offers for item:', error);
-      });
-    }
-
     const giftItem = currentItem.giftItemId ? items.find((i) => i.id === currentItem.giftItemId) : null;
     setInvoiceItems([...invoiceItems, { ...currentItem, item, giftItem }]);
-    setCurrentItem({ itemId: '', quantity: 1, giftQty: 0, giftItemId: '', giftQuantity: 0, offerId: '' });
+    setCurrentItem({ itemId: '', quantity: 1, giftQty: 0, giftItemId: '', giftQuantity: 0, priceTier: '' });
   };
 
   const removeItem = (index: number) => {
     setInvoiceItems(invoiceItems.filter((_, i) => i !== index));
   };
 
-  // Helper function to check if item has active offers
-  const hasActiveOffers = (item: any) => {
-    if (!item.offers || item.offers.length === 0) return false;
-    const now = new Date();
-    return item.offers.some((offer: any) => {
-      if (!offer.isActive) return false;
-      if (new Date(offer.validFrom) > now) return false;
-      if (offer.validTo && new Date(offer.validTo) < now) return false;
-      return true;
-    });
-  };
-
-  // Helper function to get active offers for an item
-  const getActiveOffers = (item: any) => {
-    if (!item.offers || item.offers.length === 0) return [];
-    const now = new Date();
-    return item.offers
-      .filter((offer: any) => {
-        if (!offer.isActive) return false;
-        if (new Date(offer.validFrom) > now) return false;
-        if (offer.validTo && new Date(offer.validTo) < now) return false;
-        return true;
-      })
-      .sort((a: any, b: any) => new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime());
+  // Helper function to get available price tiers for bakery items
+  const getAvailablePriceTiers = (item: any) => {
+    if (!item.prices) return [];
+    const tiers: any[] = [];
+    const pricesForInventory = item.prices.filter((p: any) => 
+      p.inventoryId === formData.inventoryId || p.inventoryId === null
+    );
+    
+    // Check for WHOLESALE, OFFER_1, and OFFER_2
+    const hasWholesale = pricesForInventory.some((p: any) => p.tier === 'WHOLESALE');
+    const hasOffer1 = pricesForInventory.some((p: any) => p.tier === 'OFFER_1');
+    const hasOffer2 = pricesForInventory.some((p: any) => p.tier === 'OFFER_2');
+    
+    if (hasWholesale) tiers.push({ value: 'WHOLESALE', label: 'سعر الجملة' });
+    if (hasOffer1) tiers.push({ value: 'OFFER_1', label: 'العرض الأول' });
+    if (hasOffer2) tiers.push({ value: 'OFFER_2', label: 'العرض الثاني' });
+    
+    return tiers;
   };
 
   const calculateTotal = () => {
@@ -207,39 +185,30 @@ export default function NewSalesInvoicePage() {
     const subtotal = invoiceItems.reduce((sum, lineItem) => {
       let price = 0;
 
-      // Check if an offer was explicitly selected for this item
-      if (lineItem.offerId && lineItem.item.offers) {
-        const selectedOffer = lineItem.item.offers.find((offer: any) => offer.id === lineItem.offerId);
-        if (selectedOffer) {
-          // Validate offer is active and valid
-          const now = new Date();
-          if (selectedOffer.isActive && 
-              new Date(selectedOffer.validFrom) <= now &&
-              (!selectedOffer.validTo || new Date(selectedOffer.validTo) >= now)) {
-            price = parseFloat(selectedOffer.offerPrice);
-          }
-        }
+      // Determine which price tier to use for this item
+      let tierToUse = pricingTier;
+      if (lineItem.priceTier) {
+        // Override with explicitly selected price tier (for bakery wholesale offers)
+        tierToUse = lineItem.priceTier;
       }
 
-      // If no offer price found or selected, use regular price
-      if (price === 0) {
-        const prices = lineItem.item.prices
-          .filter((p: any) => p.tier === pricingTier)
-          .filter((p: any) => {
-            // Include inventory-specific price OR global price (inventoryId is null)
-            return p.inventoryId === formData.inventoryId || p.inventoryId === null;
-          })
-          .sort((a: any, b: any) => {
-            // Prefer inventory-specific over global (null comes last)
-            if (a.inventoryId && !b.inventoryId) return -1;
-            if (!a.inventoryId && b.inventoryId) return 1;
-            // Then by validFrom (most recent first)
-            return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
-          });
-        
-        if (prices.length === 0) return sum;
-        price = parseFloat(prices[0].price);
-      }
+      // Find the price for the selected tier
+      const prices = lineItem.item.prices
+        .filter((p: any) => p.tier === tierToUse)
+        .filter((p: any) => {
+          // Include inventory-specific price OR global price (inventoryId is null)
+          return p.inventoryId === formData.inventoryId || p.inventoryId === null;
+        })
+        .sort((a: any, b: any) => {
+          // Prefer inventory-specific over global (null comes last)
+          if (a.inventoryId && !b.inventoryId) return -1;
+          if (!a.inventoryId && b.inventoryId) return 1;
+          // Then by validFrom (most recent first)
+          return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+        });
+      
+      if (prices.length === 0) return sum;
+      price = parseFloat(prices[0].price);
 
       return sum + price * lineItem.quantity;
     }, 0);
@@ -267,6 +236,7 @@ export default function NewSalesInvoicePage() {
           giftQty: i.giftQty || 0, // Keep for backward compatibility
           giftItemId: i.giftItemId || undefined,
           giftQuantity: i.giftQuantity || undefined,
+          priceTier: i.priceTier || undefined, // Include selected price tier if any (for bakery wholesale offers)
         })),
       };
       
@@ -461,41 +431,40 @@ export default function NewSalesInvoicePage() {
                   onChange={(e) => setCurrentItem({ ...currentItem, itemId: e.target.value })}
                 >
                   <option value="">اختر الصنف</option>
-                  {items.map((item) => {
-                    const hasOffers = formData.section === 'BAKERY' && hasActiveOffers(item);
-                    const activeOffers = hasOffers ? getActiveOffers(item) : [];
-                    const bestOffer = activeOffers.length > 0 ? activeOffers[0] : null;
-                    return (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                        {hasOffers && bestOffer ? ` (عرض: ${formatCurrency(parseFloat(bestOffer.offerPrice))})` : ''}
-                      </option>
-                    );
-                  })}
+                  {items.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
                 </select>
-                {currentItem.itemId && formData.section === 'BAKERY' && (() => {
+                {currentItem.itemId && (() => {
+                  const customer = formData.customerId ? customers.find((c) => c.id === formData.customerId) : null;
+                  const isBakeryWholesale = formData.section === 'BAKERY' && 
+                                           customer && 
+                                           customer.type === 'WHOLESALE' && 
+                                           customer.division === 'BAKERY';
                   const selectedItem = items.find((i) => i.id === currentItem.itemId);
-                  if (selectedItem && hasActiveOffers(selectedItem)) {
-                    const activeOffers = getActiveOffers(selectedItem);
-                    return (
-                      <div className="mt-2 p-2 bg-pink-50 border border-pink-200 rounded text-sm">
-                        <div className="font-semibold text-pink-800 mb-1">عروض متاحة:</div>
-                        {activeOffers.map((offer: any, idx: number) => (
-                          <div key={idx} className="text-pink-700">
-                            • {formatCurrency(parseFloat(offer.offerPrice))}
-                            {offer.validTo && (
-                              <span className="text-xs text-pink-600 mr-2">
-                                (صالح حتى: {new Date(offer.validTo).toLocaleDateString('ar-SD')})
-                              </span>
-                            )}
-                            {!offer.validTo && <span className="text-xs text-pink-600 mr-2">(دائم)</span>}
-                          </div>
-                        ))}
-                        <div className="text-xs text-pink-600 mt-1">
-                          سيتم تطبيق العرض تلقائياً عند اختيار عميل جملة أفران
+                  
+                  if (isBakeryWholesale && selectedItem) {
+                    const availableTiers = getAvailablePriceTiers(selectedItem);
+                    if (availableTiers.length > 0) {
+                      return (
+                        <div className="mt-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">اختر السعر:</label>
+                          <select
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                            value={currentItem.priceTier || 'WHOLESALE'}
+                            onChange={(e) => setCurrentItem({ ...currentItem, priceTier: e.target.value })}
+                          >
+                            {availableTiers.map((tier) => (
+                              <option key={tier.value} value={tier.value}>
+                                {tier.label}
+                              </option>
+                            ))}
+                          </select>
                         </div>
-                      </div>
-                    );
+                      );
+                    }
                   }
                   return null;
                 })()}
@@ -583,35 +552,28 @@ export default function NewSalesInvoicePage() {
                     // Calculate price for display
                     let displayPrice = 0;
                     let isOfferPrice = false;
-                    let availableOffers: any[] = [];
                     
-                    // Check for available offers (even if not applied)
-                    if (formData.section === 'BAKERY' && item.item.offers) {
-                      availableOffers = getActiveOffers(item.item);
-                    }
-                    
-                    // Check if an offer was selected for this item
-                    if (item.offerId && availableOffers.length > 0) {
-                      const selectedOffer = availableOffers.find((offer: any) => offer.id === item.offerId);
-                      if (selectedOffer) {
-                        displayPrice = parseFloat(selectedOffer.offerPrice);
+                    // Determine which price tier to use for this item
+                    let tierToUse = pricingTier;
+                    if (item.priceTier) {
+                      // Override with explicitly selected price tier (for bakery wholesale offers)
+                      tierToUse = item.priceTier;
+                      if (tierToUse === 'OFFER_1' || tierToUse === 'OFFER_2') {
                         isOfferPrice = true;
                       }
                     }
                     
-                    // Use regular price if no offer selected or offer not found
-                    if (displayPrice === 0) {
-                      const prices = item.item.prices
-                        .filter((p: any) => p.tier === pricingTier)
-                        .filter((p: any) => p.inventoryId === formData.inventoryId || p.inventoryId === null)
-                        .sort((a: any, b: any) => {
-                          if (a.inventoryId && !b.inventoryId) return -1;
-                          if (!a.inventoryId && b.inventoryId) return 1;
-                          return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
-                        });
-                      if (prices.length > 0) {
-                        displayPrice = parseFloat(prices[0].price);
-                      }
+                    // Find the price for the selected tier
+                    const prices = item.item.prices
+                      .filter((p: any) => p.tier === tierToUse)
+                      .filter((p: any) => p.inventoryId === formData.inventoryId || p.inventoryId === null)
+                      .sort((a: any, b: any) => {
+                        if (a.inventoryId && !b.inventoryId) return -1;
+                        if (!a.inventoryId && b.inventoryId) return 1;
+                        return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+                      });
+                    if (prices.length > 0) {
+                      displayPrice = parseFloat(prices[0].price);
                     }
 
                     return (
@@ -632,41 +594,40 @@ export default function NewSalesInvoicePage() {
                                 {formatCurrency(displayPrice)}
                               </span>
                               {isOfferPrice && (
-                                <span className="text-xs text-pink-500 block">سعر العرض</span>
-                              )}
-                              {!isOfferPrice && availableOffers.length > 0 && (
-                                <div className="mt-1">
-                                  <span className="text-xs text-orange-600 block">
-                                    عرض متاح: {formatCurrency(parseFloat(availableOffers[0].offerPrice))}
-                                  </span>
-                                </div>
+                                <span className="text-xs text-pink-500 block">
+                                  {item.priceTier === 'OFFER_1' ? 'العرض الأول' : item.priceTier === 'OFFER_2' ? 'العرض الثاني' : 'سعر العرض'}
+                                </span>
                               )}
                             </div>
                           ) : (
                             '-'
                           )}
                         </td>
-                        {formData.section === 'BAKERY' && availableOffers.length > 0 && (
-                          <td className="px-4 py-2 text-sm">
-                            <select
-                              className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
-                              value={item.offerId || ''}
-                              onChange={(e) => {
-                                const updatedItems = [...invoiceItems];
-                                updatedItems[index] = { ...item, offerId: e.target.value || undefined };
-                                setInvoiceItems(updatedItems);
-                              }}
-                            >
-                              <option value="">سعر عادي</option>
-                              {availableOffers.map((offer: any) => (
-                                <option key={offer.id} value={offer.id}>
-                                  عرض: {formatCurrency(parseFloat(offer.offerPrice))}
-                                  {offer.validTo && ` (حتى ${new Date(offer.validTo).toLocaleDateString('ar-SD')})`}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                        )}
+                        {isBakeryWholesale && (() => {
+                          const availableTiers = getAvailablePriceTiers(item.item);
+                          if (availableTiers.length > 0) {
+                            return (
+                              <td className="px-4 py-2 text-sm">
+                                <select
+                                  className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  value={item.priceTier || 'WHOLESALE'}
+                                  onChange={(e) => {
+                                    const updatedItems = [...invoiceItems];
+                                    updatedItems[index] = { ...item, priceTier: e.target.value };
+                                    setInvoiceItems(updatedItems);
+                                  }}
+                                >
+                                  {availableTiers.map((tier) => (
+                                    <option key={tier.value} value={tier.value}>
+                                      {tier.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                            );
+                          }
+                          return null;
+                        })()}
                         <td className="px-4 py-2 text-sm">
                           {item.giftQty > 0 ? `${item.giftQty} (قديم)` : item.giftItem ? `${item.giftQuantity} × ${item.giftItem.name}` : '-'}
                         </td>

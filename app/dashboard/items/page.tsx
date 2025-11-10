@@ -31,6 +31,8 @@ export default function ItemsPage() {
     agentWholesalePrice: '',
     agentRetailPrice: '',
     agentPrice: '', // Deprecated: kept for backward compatibility
+    offer1Price: '',
+    offer2Price: '',
   });
   const [priceData, setPriceData] = useState({
     wholesalePrice: '',
@@ -38,6 +40,8 @@ export default function ItemsPage() {
     agentWholesalePrice: '',
     agentRetailPrice: '',
     agentPrice: '', // Deprecated: kept for backward compatibility
+    offer1Price: '',
+    offer2Price: '',
     inventoryId: '',
   });
 
@@ -99,6 +103,8 @@ export default function ItemsPage() {
         agentWholesalePrice: formData.agentWholesalePrice ? parseFloat(formData.agentWholesalePrice) : undefined,
         agentRetailPrice: formData.agentRetailPrice ? parseFloat(formData.agentRetailPrice) : undefined,
         agentPrice: formData.agentPrice ? parseFloat(formData.agentPrice) : undefined, // Legacy
+        offer1Price: formData.offer1Price ? parseFloat(formData.offer1Price) : undefined,
+        offer2Price: formData.offer2Price ? parseFloat(formData.offer2Price) : undefined,
       });
       setShowForm(false);
       setFormData({
@@ -109,6 +115,8 @@ export default function ItemsPage() {
         agentWholesalePrice: '',
         agentRetailPrice: '',
         agentPrice: '',
+        offer1Price: '',
+        offer2Price: '',
       });
       await loadItems();
       alert('تم إضافة الصنف بنجاح');
@@ -128,10 +136,12 @@ export default function ItemsPage() {
         agentWholesalePrice: priceData.agentWholesalePrice ? parseFloat(priceData.agentWholesalePrice) : undefined,
         agentRetailPrice: priceData.agentRetailPrice ? parseFloat(priceData.agentRetailPrice) : undefined,
         agentPrice: priceData.agentPrice ? parseFloat(priceData.agentPrice) : undefined, // Legacy
+        offer1Price: priceData.offer1Price ? parseFloat(priceData.offer1Price) : undefined,
+        offer2Price: priceData.offer2Price ? parseFloat(priceData.offer2Price) : undefined,
         inventoryId: priceData.inventoryId || undefined,
       });
       setEditingPrices(null);
-      setPriceData({ wholesalePrice: '', retailPrice: '', agentWholesalePrice: '', agentRetailPrice: '', agentPrice: '', inventoryId: '' });
+      setPriceData({ wholesalePrice: '', retailPrice: '', agentWholesalePrice: '', agentRetailPrice: '', agentPrice: '', offer1Price: '', offer2Price: '', inventoryId: '' });
       await loadItems();
       alert('تم تحديث الأسعار بنجاح');
     } catch (error: any) {
@@ -225,7 +235,27 @@ export default function ItemsPage() {
         return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
       })[0];
     
-    return { wholesale, retail, agentWholesale, agentRetail, agent };
+    const offer1 = pricesForInventory
+      .filter((p: any) => p.tier === 'OFFER_1')
+      .sort((a: any, b: any) => {
+        // Prefer inventory-specific over global
+        if (a.inventoryId && !b.inventoryId) return -1;
+        if (!a.inventoryId && b.inventoryId) return 1;
+        // Then by validFrom
+        return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+      })[0];
+    
+    const offer2 = pricesForInventory
+      .filter((p: any) => p.tier === 'OFFER_2')
+      .sort((a: any, b: any) => {
+        // Prefer inventory-specific over global
+        if (a.inventoryId && !b.inventoryId) return -1;
+        if (!a.inventoryId && b.inventoryId) return 1;
+        // Then by validFrom
+        return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+      })[0];
+    
+    return { wholesale, retail, agentWholesale, agentRetail, agent, offer1, offer2 };
   };
 
   const columns = [
@@ -319,6 +349,46 @@ export default function ItemsPage() {
             <span className={isInventorySpecific ? 'font-semibold' : ''}>
               {formatCurrency(price.price)}
               {!isInventorySpecific && price.inventoryId === null && selectedInventory && (
+                <span className="text-xs text-gray-500 mr-1">(عام)</span>
+              )}
+            </span>
+          );
+        }
+        return '-';
+      },
+    },
+    {
+      key: 'offer1Price',
+      label: selectedInventory ? `العرض الأول (${inventories.find(i => i.id === selectedInventory)?.name || ''})` : 'العرض الأول',
+      render: (_: any, row: any) => {
+        if (row.section !== 'BAKERY') return '-';
+        const prices = getLatestPrices(row, selectedInventory);
+        if (prices.offer1) {
+          const isInventorySpecific = prices.offer1.inventoryId === selectedInventory;
+          return (
+            <span className={isInventorySpecific ? 'font-semibold text-pink-600' : 'text-pink-600'}>
+              {formatCurrency(prices.offer1.price)}
+              {!isInventorySpecific && prices.offer1.inventoryId === null && selectedInventory && (
+                <span className="text-xs text-gray-500 mr-1">(عام)</span>
+              )}
+            </span>
+          );
+        }
+        return '-';
+      },
+    },
+    {
+      key: 'offer2Price',
+      label: selectedInventory ? `العرض الثاني (${inventories.find(i => i.id === selectedInventory)?.name || ''})` : 'العرض الثاني',
+      render: (_: any, row: any) => {
+        if (row.section !== 'BAKERY') return '-';
+        const prices = getLatestPrices(row, selectedInventory);
+        if (prices.offer2) {
+          const isInventorySpecific = prices.offer2.inventoryId === selectedInventory;
+          return (
+            <span className={isInventorySpecific ? 'font-semibold text-pink-600' : 'text-pink-600'}>
+              {formatCurrency(prices.offer2.price)}
+              {!isInventorySpecific && prices.offer2.inventoryId === null && selectedInventory && (
                 <span className="text-xs text-gray-500 mr-1">(عام)</span>
               )}
             </span>
@@ -480,6 +550,28 @@ export default function ItemsPage() {
               placeholder="إذا لم يتم تحديده، سيستخدم سعر القطاعي"
             />
 
+            {formData.section === 'BAKERY' && (
+              <>
+                <Input
+                  label="العرض الأول (اختياري - لأصناف الأفران فقط)"
+                  type="number"
+                  step="0.01"
+                  value={formData.offer1Price}
+                  onChange={(e) => setFormData({ ...formData, offer1Price: e.target.value })}
+                  placeholder="سعر العرض الأول"
+                />
+
+                <Input
+                  label="العرض الثاني (اختياري - لأصناف الأفران فقط)"
+                  type="number"
+                  step="0.01"
+                  value={formData.offer2Price}
+                  onChange={(e) => setFormData({ ...formData, offer2Price: e.target.value })}
+                  placeholder="سعر العرض الثاني"
+                />
+              </>
+            )}
+
             <Button 
               type="submit"
               disabled={submitting}
@@ -536,6 +628,28 @@ export default function ItemsPage() {
             placeholder="اتركه فارغاً للحفاظ على السعر الحالي"
           />
 
+          {items.find((i: any) => i.id === editingPrices)?.section === 'BAKERY' && (
+            <>
+              <Input
+                label="العرض الأول الجديد (اختياري - لأصناف الأفران فقط)"
+                type="number"
+                step="0.01"
+                value={priceData.offer1Price}
+                onChange={(e) => setPriceData({ ...priceData, offer1Price: e.target.value })}
+                placeholder="اتركه فارغاً للحفاظ على السعر الحالي"
+              />
+
+              <Input
+                label="العرض الثاني الجديد (اختياري - لأصناف الأفران فقط)"
+                type="number"
+                step="0.01"
+                value={priceData.offer2Price}
+                onChange={(e) => setPriceData({ ...priceData, offer2Price: e.target.value })}
+                placeholder="اتركه فارغاً للحفاظ على السعر الحالي"
+              />
+            </>
+          )}
+
           <div className="flex gap-2">
             <Button 
               onClick={() => handleUpdatePrices(editingPrices)}
@@ -547,7 +661,7 @@ export default function ItemsPage() {
               variant="secondary" 
               onClick={() => {
                 setEditingPrices(null);
-                setPriceData({ wholesalePrice: '', retailPrice: '', agentWholesalePrice: '', agentRetailPrice: '', agentPrice: '', inventoryId: '' });
+                setPriceData({ wholesalePrice: '', retailPrice: '', agentWholesalePrice: '', agentRetailPrice: '', agentPrice: '', offer1Price: '', offer2Price: '', inventoryId: '' });
               }}
               disabled={updatingPrices}
             >
