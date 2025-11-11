@@ -438,10 +438,21 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
             </div>
             <div className="col-span-2">
               <p className="text-gray-600">حالة تأكيد الدفع</p>
-              {invoice.paymentConfirmed ? (
+              {invoice.paymentConfirmationStatus === 'CONFIRMED' ? (
                 <div className="flex items-center gap-2 mt-1">
                   <span className="inline-block px-3 py-1 rounded bg-green-100 text-green-800 text-sm font-semibold">
                     ✓ تم تأكيد الدفع
+                  </span>
+                  {invoice.paymentConfirmedByUser && (
+                    <span className="text-sm text-gray-600">
+                      بواسطة: {invoice.paymentConfirmedByUser.username} - {formatDateTime(invoice.paymentConfirmedAt)}
+                    </span>
+                  )}
+                </div>
+              ) : invoice.paymentConfirmationStatus === 'REJECTED' ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="inline-block px-3 py-1 rounded bg-red-100 text-red-800 text-sm font-semibold">
+                    ✗ مرفوضة
                   </span>
                   {invoice.paymentConfirmedByUser && (
                     <span className="text-sm text-gray-600">
@@ -491,7 +502,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
         )}
 
         {/* Actions */}
-        {!isAuditor && user?.role === 'ACCOUNTANT' && !invoice.paymentConfirmed && (
+        {!isAuditor && user?.role === 'ACCOUNTANT' && invoice.paymentConfirmationStatus === 'PENDING' && (
           <>
             <Card>
               <h3 className="text-xl font-semibold mb-4">تأكيد الدفع</h3>
@@ -506,7 +517,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
               </Button>
             </Card>
 
-            {invoice.deliveryStatus !== 'REJECTED' && (
+            {invoice.paymentConfirmationStatus !== 'REJECTED' && (
               <Card>
                 <h3 className="text-xl font-semibold mb-4">رفض الفاتورة</h3>
                 <p className="text-gray-600 mb-4">
@@ -571,7 +582,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
 
               {user?.role === 'INVENTORY' && invoice.deliveryStatus !== 'DELIVERED' && (
                 <>
-                  {!invoice.paymentConfirmed ? (
+                  {invoice.paymentConfirmationStatus !== 'CONFIRMED' ? (
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                       <p className="text-orange-800 font-semibold">⏳ في انتظار تأكيد الدفع</p>
                       <p className="text-orange-700 text-sm mt-1">
