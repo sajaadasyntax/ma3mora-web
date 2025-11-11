@@ -170,7 +170,7 @@ export default function NewSalesInvoicePage() {
       }
 
       // Find the price for the selected tier
-      const prices = lineItem.item.prices
+      let prices = lineItem.item.prices
         .filter((p: any) => {
           // Filter by inventory first
           const matchesInventory = p.inventoryId === formData.inventoryId || p.inventoryId === null;
@@ -185,6 +185,25 @@ export default function NewSalesInvoicePage() {
           // Then by validFrom (most recent first)
           return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
         });
+      
+      // If no exact match and looking for AGENT_RETAIL or AGENT_WHOLESALE, try legacy 'AGENT' tier
+      if (prices.length === 0 && (tierToUse === 'AGENT_RETAIL' || tierToUse === 'AGENT_WHOLESALE')) {
+        prices = lineItem.item.prices
+          .filter((p: any) => {
+            // Filter by inventory first
+            const matchesInventory = p.inventoryId === formData.inventoryId || p.inventoryId === null;
+            if (!matchesInventory) return false;
+            // Then filter by legacy AGENT tier
+            return p.tier === 'AGENT';
+          })
+          .sort((a: any, b: any) => {
+            // Prefer inventory-specific over global (null comes last)
+            if (a.inventoryId && !b.inventoryId) return -1;
+            if (!a.inventoryId && b.inventoryId) return 1;
+            // Then by validFrom (most recent first)
+            return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+          });
+      }
       
       if (prices.length === 0) {
         // Debug: log when price is not found
@@ -540,7 +559,7 @@ export default function NewSalesInvoicePage() {
                     }
                     
                     // Find the price for the selected tier
-                    const prices = item.item.prices
+                    let prices = item.item.prices
                       .filter((p: any) => {
                         // Filter by inventory first
                         const matchesInventory = p.inventoryId === formData.inventoryId || p.inventoryId === null;
@@ -555,6 +574,26 @@ export default function NewSalesInvoicePage() {
                         // Then by validFrom (most recent first)
                         return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
                       });
+                    
+                    // If no exact match and looking for AGENT_RETAIL or AGENT_WHOLESALE, try legacy 'AGENT' tier
+                    if (prices.length === 0 && (tierToUse === 'AGENT_RETAIL' || tierToUse === 'AGENT_WHOLESALE')) {
+                      prices = item.item.prices
+                        .filter((p: any) => {
+                          // Filter by inventory first
+                          const matchesInventory = p.inventoryId === formData.inventoryId || p.inventoryId === null;
+                          if (!matchesInventory) return false;
+                          // Then filter by legacy AGENT tier
+                          return p.tier === 'AGENT';
+                        })
+                        .sort((a: any, b: any) => {
+                          // Prefer inventory-specific over global (null comes last)
+                          if (a.inventoryId && !b.inventoryId) return -1;
+                          if (!a.inventoryId && b.inventoryId) return 1;
+                          // Then by validFrom (most recent first)
+                          return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
+                        });
+                    }
+                    
                     if (prices.length > 0) {
                       displayPrice = parseFloat(prices[0].price);
                     } else {
