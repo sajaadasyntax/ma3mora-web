@@ -171,10 +171,12 @@ export default function NewSalesInvoicePage() {
 
       // Find the price for the selected tier
       const prices = lineItem.item.prices
-        .filter((p: any) => p.tier === tierToUse)
         .filter((p: any) => {
-          // Include inventory-specific price OR global price (inventoryId is null)
-          return p.inventoryId === formData.inventoryId || p.inventoryId === null;
+          // Filter by inventory first
+          const matchesInventory = p.inventoryId === formData.inventoryId || p.inventoryId === null;
+          if (!matchesInventory) return false;
+          // Then filter by tier
+          return p.tier === tierToUse;
         })
         .sort((a: any, b: any) => {
           // Prefer inventory-specific over global (null comes last)
@@ -184,7 +186,11 @@ export default function NewSalesInvoicePage() {
           return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
         });
       
-      if (prices.length === 0) return sum;
+      if (prices.length === 0) {
+        // Debug: log when price is not found
+        console.warn(`Price not found for item ${lineItem.item.name}, tier: ${tierToUse}, inventory: ${formData.inventoryId}`);
+        return sum;
+      }
       price = parseFloat(prices[0].price);
 
       return sum + price * lineItem.quantity;
@@ -535,15 +541,26 @@ export default function NewSalesInvoicePage() {
                     
                     // Find the price for the selected tier
                     const prices = item.item.prices
-                      .filter((p: any) => p.tier === tierToUse)
-                      .filter((p: any) => p.inventoryId === formData.inventoryId || p.inventoryId === null)
+                      .filter((p: any) => {
+                        // Filter by inventory first
+                        const matchesInventory = p.inventoryId === formData.inventoryId || p.inventoryId === null;
+                        if (!matchesInventory) return false;
+                        // Then filter by tier
+                        return p.tier === tierToUse;
+                      })
                       .sort((a: any, b: any) => {
+                        // Prefer inventory-specific over global (null comes last)
                         if (a.inventoryId && !b.inventoryId) return -1;
                         if (!a.inventoryId && b.inventoryId) return 1;
+                        // Then by validFrom (most recent first)
                         return new Date(b.validFrom).getTime() - new Date(a.validFrom).getTime();
                       });
                     if (prices.length > 0) {
                       displayPrice = parseFloat(prices[0].price);
+                    } else {
+                      // Debug: log when price is not found
+                      console.warn(`Price not found for item ${item.item.name}, tier: ${tierToUse}, inventory: ${formData.inventoryId}`);
+                      console.warn('Available prices:', item.item.prices.map((p: any) => ({ tier: p.tier, inventoryId: p.inventoryId, price: p.price })));
                     }
 
                     return (
