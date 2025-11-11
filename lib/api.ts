@@ -141,6 +141,12 @@ export const api = {
       method: 'POST',
     }),
 
+  rejectInvoice: (id: string, notes?: string) =>
+    fetchAPI(`/sales/invoices/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ notes }),
+    }),
+
   deliverInvoice: (id: string, notes?: string) =>
     fetchAPI(`/sales/invoices/${id}/deliver`, {
       method: 'POST',

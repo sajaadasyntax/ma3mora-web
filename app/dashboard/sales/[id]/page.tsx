@@ -31,6 +31,9 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
   const [invoice, setInvoice] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [confirmingPayment, setConfirmingPayment] = useState(false);
+  const [rejectingInvoice, setRejectingInvoice] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectNotes, setRejectNotes] = useState('');
   const [submittingPayment, setSubmittingPayment] = useState(false);
   const [delivering, setDelivering] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -82,6 +85,25 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
       alert(error.message || 'فشل تأكيد الدفع');
     } finally {
       setConfirmingPayment(false);
+    }
+  };
+
+  const handleRejectInvoice = async () => {
+    if (!confirm('هل أنت متأكد من رفض هذه الفاتورة؟')) {
+      return;
+    }
+
+    setRejectingInvoice(true);
+    try {
+      await api.rejectInvoice(params.id, rejectNotes || undefined);
+      await loadInvoice();
+      alert('تم رفض الفاتورة بنجاح');
+      setShowRejectForm(false);
+      setRejectNotes('');
+    } catch (error: any) {
+      alert(error.message || 'فشل رفض الفاتورة');
+    } finally {
+      setRejectingInvoice(false);
     }
   };
 
@@ -470,18 +492,66 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
 
         {/* Actions */}
         {!isAuditor && user?.role === 'ACCOUNTANT' && !invoice.paymentConfirmed && (
-          <Card>
-            <h3 className="text-xl font-semibold mb-4">تأكيد الدفع</h3>
-            <p className="text-gray-600 mb-4">
-              قم بتأكيد دفع الفاتورة لتمكين موظف المخازن من تسليم البضاعة
-            </p>
-            <Button 
-              onClick={handleConfirmPayment}
-              disabled={confirmingPayment}
-            >
-              {confirmingPayment ? 'جاري التأكيد...' : '✓ تأكيد الدفع'}
-            </Button>
-          </Card>
+          <>
+            <Card>
+              <h3 className="text-xl font-semibold mb-4">تأكيد الدفع</h3>
+              <p className="text-gray-600 mb-4">
+                قم بتأكيد دفع الفاتورة لتمكين موظف المخازن من تسليم البضاعة
+              </p>
+              <Button 
+                onClick={handleConfirmPayment}
+                disabled={confirmingPayment}
+              >
+                {confirmingPayment ? 'جاري التأكيد...' : '✓ تأكيد الدفع'}
+              </Button>
+            </Card>
+
+            {invoice.deliveryStatus !== 'REJECTED' && (
+              <Card>
+                <h3 className="text-xl font-semibold mb-4">رفض الفاتورة</h3>
+                <p className="text-gray-600 mb-4">
+                  يمكنك رفض الفاتورة قبل تأكيد الدفع
+                </p>
+                {!showRejectForm ? (
+                  <Button 
+                    onClick={() => setShowRejectForm(true)}
+                    variant="danger"
+                    disabled={rejectingInvoice}
+                  >
+                    رفض الفاتورة
+                  </Button>
+                ) : (
+                  <div className="space-y-4">
+                    <Input
+                      label="ملاحظات الرفض (اختياري)"
+                      value={rejectNotes}
+                      onChange={(e) => setRejectNotes(e.target.value)}
+                      placeholder="أدخل سبب الرفض..."
+                    />
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={handleRejectInvoice}
+                        variant="danger"
+                        disabled={rejectingInvoice}
+                      >
+                        {rejectingInvoice ? 'جاري الرفض...' : '✓ تأكيد الرفض'}
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          setShowRejectForm(false);
+                          setRejectNotes('');
+                        }}
+                        variant="secondary"
+                        disabled={rejectingInvoice}
+                      >
+                        إلغاء
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
+          </>
         )}
 
         {!isAuditor && (

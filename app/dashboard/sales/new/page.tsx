@@ -279,10 +279,11 @@ export default function NewSalesInvoicePage() {
 
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">العميل (اختياري)</label>
-              <div className={`grid gap-4 ${isAgentUser ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                {isAgentUser && (
+              <div className={`grid gap-4 ${isAgentUser ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                {isAgentUser ? (
+                  // For agents, only show agent customers
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">وكيل</label>
+                    <label className="block text-xs text-gray-500 mb-1">العميل</label>
                     <Select
                       value={formData.customerId && agentCustomers.some(c => c.id === formData.customerId) ? formData.customerId : ''}
                       onChange={(e) => {
@@ -298,59 +299,47 @@ export default function NewSalesInvoicePage() {
                       ]}
                     />
                   </div>
+                ) : (
+                  // For regular sales users, show RETAIL and WHOLESALE customers
+                  <>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">بالتجزئة</label>
+                      <Select
+                        value={formData.customerId && retailCustomers.some(c => c.id === formData.customerId) ? formData.customerId : ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({ 
+                            ...formData, 
+                            customerId: value || '',
+                            pricingTier: value ? 'RETAIL' : formData.pricingTier,
+                          });
+                        }}
+                        options={[
+                          { value: '', label: 'بدون عميل' },
+                          ...retailCustomers.map((c) => ({ value: c.id, label: c.name })),
+                        ]}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">بالجملة</label>
+                      <Select
+                        value={formData.customerId && wholesaleCustomers.some(c => c.id === formData.customerId) ? formData.customerId : ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({ 
+                            ...formData, 
+                            customerId: value || '',
+                            pricingTier: value ? 'WHOLESALE' : formData.pricingTier,
+                          });
+                        }}
+                        options={[
+                          { value: '', label: 'بدون عميل' },
+                          ...wholesaleCustomers.map((c) => ({ value: c.id, label: c.name })),
+                        ]}
+                      />
+                    </div>
+                  </>
                 )}
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">بالتجزئة</label>
-                  <Select
-                    value={formData.customerId && retailCustomers.some(c => c.id === formData.customerId) ? formData.customerId : ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // For agents, don't auto-set pricing tier - let them choose
-                      if (isAgentUser) {
-                        setFormData({ 
-                          ...formData, 
-                          customerId: value || '',
-                        });
-                      } else {
-                        setFormData({ 
-                          ...formData, 
-                          customerId: value || '',
-                          pricingTier: value ? 'RETAIL' : formData.pricingTier,
-                        });
-                      }
-                    }}
-                    options={[
-                      { value: '', label: 'بدون عميل' },
-                      ...retailCustomers.map((c) => ({ value: c.id, label: c.name })),
-                    ]}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">بالجملة</label>
-                  <Select
-                    value={formData.customerId && wholesaleCustomers.some(c => c.id === formData.customerId) ? formData.customerId : ''}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // For agents, don't auto-set pricing tier - let them choose
-                      if (isAgentUser) {
-                        setFormData({ 
-                          ...formData, 
-                          customerId: value || '',
-                        });
-                      } else {
-                        setFormData({ 
-                          ...formData, 
-                          customerId: value || '',
-                          pricingTier: value ? 'WHOLESALE' : formData.pricingTier,
-                        });
-                      }
-                    }}
-                    options={[
-                      { value: '', label: 'بدون عميل' },
-                      ...wholesaleCustomers.map((c) => ({ value: c.id, label: c.name })),
-                    ]}
-                  />
-                </div>
               </div>
               {/* Show pricing tier selector for agents, or when no customer is selected */}
               {(isAgentUser || !formData.customerId) && (
