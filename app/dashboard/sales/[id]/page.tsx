@@ -571,6 +571,7 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
             <div className="flex gap-4">
               {user?.role === 'ACCOUNTANT' &&
                 invoice.paymentStatus !== 'PAID' &&
+                invoice.paymentConfirmationStatus !== 'REJECTED' &&
                 remainingAmount > 0 && (
                   <Button 
                     onClick={() => setShowPaymentForm(!showPaymentForm)}
