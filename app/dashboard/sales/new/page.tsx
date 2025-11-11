@@ -108,9 +108,11 @@ export default function NewSalesInvoicePage() {
   };
 
   // Separate customers by type
-  const retailCustomers = customers.filter((c) => c.type === 'RETAIL');
-  const wholesaleCustomers = customers.filter((c) => c.type === 'WHOLESALE');
-  const agentCustomers = customers.filter((c) => c.type === 'AGENT');
+  // For agents, all customers returned are agent customers (backend filters by isAgentCustomer)
+  // For regular sales users, filter by type
+  const retailCustomers = isAgentUser ? [] : customers.filter((c) => c.type === 'RETAIL');
+  const wholesaleCustomers = isAgentUser ? [] : customers.filter((c) => c.type === 'WHOLESALE');
+  const agentCustomers = isAgentUser ? customers : customers.filter((c) => c.type === 'AGENT');
 
   const addItem = () => {
     if (!currentItem.itemId || currentItem.quantity <= 0) {
