@@ -567,15 +567,17 @@ export default function SalesReportsPage() {
                     }
                   },
                   { 
-                    key: 'paymentConfirmed', 
+                    key: 'paymentConfirmationStatus', 
                     label: 'تأكيد الدفع',
-                    render: (value: boolean) => (
-                      <span className={`inline-block px-2 py-1 rounded text-sm ${
-                        value ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
-                      }`}>
-                        {value ? '✓ مؤكد' : '⏳ معلق'}
-                      </span>
-                    )
+                    render: (value: string) => {
+                      if (value === 'CONFIRMED') {
+                        return <span className="inline-block px-2 py-1 rounded text-sm bg-green-100 text-green-800">✓ مؤكد</span>;
+                      } else if (value === 'REJECTED') {
+                        return <span className="inline-block px-2 py-1 rounded text-sm bg-red-100 text-red-800">✗ مرفوضة</span>;
+                      } else {
+                        return <span className="inline-block px-2 py-1 rounded text-sm bg-orange-100 text-orange-800">⏳ معلق</span>;
+                      }
+                    }
                   },
                 ]}
                 data={reportData.data}

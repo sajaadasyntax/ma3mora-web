@@ -352,6 +352,12 @@ export function generateInvoicePDF(invoice: any) {
           <th>حالة التسليم</th>
           <td>${invoice.deliveryStatus === 'DELIVERED' ? 'مُسلَّمة' : 'غير مُسلَّمة'}</td>
         </tr>
+        <tr>
+          <th>تأكيد الدفع</th>
+          <td>${invoice.paymentConfirmationStatus === 'CONFIRMED' ? '✓ مؤكد' : invoice.paymentConfirmationStatus === 'REJECTED' ? '✗ مرفوضة' : '⏳ في الانتظار'}</td>
+          <th></th>
+          <td></td>
+        </tr>
       </table>
     </div>
 
@@ -487,6 +493,12 @@ export function generateInvoicePDFForAccountant(invoice: any) {
               <td>${invoice.paymentStatus === 'PAID' ? 'مدفوعة' : invoice.paymentStatus === 'PARTIAL' ? 'مدفوعة جزئياً' : 'دفع آجل'}</td>
               <th>حالة التسليم</th>
               <td>${invoice.deliveryStatus === 'DELIVERED' ? 'مُسلَّمة' : 'غير مُسلَّمة'}</td>
+            </tr>
+            <tr>
+              <th>تأكيد الدفع</th>
+              <td>${invoice.paymentConfirmationStatus === 'CONFIRMED' ? '✓ مؤكد' : invoice.paymentConfirmationStatus === 'REJECTED' ? '✗ مرفوضة' : '⏳ في الانتظار'}</td>
+              <th></th>
+              <td></td>
             </tr>
           </table>
         </div>

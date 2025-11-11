@@ -53,17 +53,17 @@ export default function SalesPage() {
       render: (value: any) => formatCurrency(value),
     },
     {
-      key: 'paymentConfirmed',
+      key: 'paymentConfirmationStatus',
       label: 'تأكيد الدفع',
-      render: (value: boolean) => (
-        <span
-          className={`px-2 py-1 rounded text-sm ${
-            value ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
-          }`}
-        >
-          {value ? '✓ مؤكد' : '⏳ معلق'}
-        </span>
-      ),
+      render: (value: string) => {
+        if (value === 'CONFIRMED') {
+          return <span className="px-2 py-1 rounded text-sm bg-green-100 text-green-800">✓ مؤكد</span>;
+        } else if (value === 'REJECTED') {
+          return <span className="px-2 py-1 rounded text-sm bg-red-100 text-red-800">✗ مرفوضة</span>;
+        } else {
+          return <span className="px-2 py-1 rounded text-sm bg-orange-100 text-orange-800">⏳ معلق</span>;
+        }
+      },
     },
     {
       key: 'paymentStatus',

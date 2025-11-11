@@ -75,6 +75,12 @@ export const deliveryStatusLabels: Record<string, string> = {
   DELIVERED: 'مُسلَّمة',
 };
 
+export const paymentConfirmationStatusLabels: Record<string, string> = {
+  PENDING: 'في الانتظار',
+  CONFIRMED: 'مؤكد',
+  REJECTED: 'مرفوضة',
+};
+
 export const procOrderStatusLabels: Record<string, string> = {
   CREATED: 'جديد',
   RECEIVED: 'مستلم',
