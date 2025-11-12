@@ -374,15 +374,27 @@ export function generateInvoicePDF(invoice: any) {
           </tr>
         </thead>
         <tbody>
-          ${invoice.items.map((item: any) => `
+          ${invoice.items.map((item: any) => {
+            const giftParts: string[] = [];
+            // Old gift system: same item as gift
+            if (item.giftQty && parseFloat(item.giftQty) > 0) {
+              giftParts.push(`${item.giftQty} (نفس الصنف)`);
+            }
+            // New gift system: separate gift item
+            if (item.giftItem && item.giftQuantity && parseFloat(item.giftQuantity) > 0) {
+              giftParts.push(`${item.giftQuantity} × ${item.giftItem.name}`);
+            }
+            const giftDisplay = giftParts.length > 0 ? giftParts.join(' / ') : '-';
+            return `
             <tr>
               <td>${item.item.name}</td>
               <td>${item.quantity}</td>
-              <td>${item.giftQty}</td>
+              <td>${giftDisplay}</td>
               <td>${formatCurrency(item.unitPrice)}</td>
               <td>${formatCurrency(item.lineTotal)}</td>
             </tr>
-          `).join('')}
+          `;
+          }).join('')}
         </tbody>
       </table>
     </div>
@@ -516,15 +528,27 @@ export function generateInvoicePDFForAccountant(invoice: any) {
               </tr>
             </thead>
             <tbody>
-              ${invoice.items.map((item: any) => `
+              ${invoice.items.map((item: any) => {
+                const giftParts: string[] = [];
+                // Old gift system: same item as gift
+                if (item.giftQty && parseFloat(item.giftQty) > 0) {
+                  giftParts.push(`${item.giftQty} (نفس الصنف)`);
+                }
+                // New gift system: separate gift item
+                if (item.giftItem && item.giftQuantity && parseFloat(item.giftQuantity) > 0) {
+                  giftParts.push(`${item.giftQuantity} × ${item.giftItem.name}`);
+                }
+                const giftDisplay = giftParts.length > 0 ? giftParts.join(' / ') : '-';
+                return `
                 <tr>
                   <td>${item.item.name}</td>
                   <td>${item.quantity}</td>
-                  <td>${item.giftQty || 0}</td>
+                  <td>${giftDisplay}</td>
                   <td>${formatCurrency(item.unitPrice)}</td>
                   <td>${formatCurrency(item.lineTotal)}</td>
                 </tr>
-              `).join('')}
+              `;
+              }).join('')}
             </tbody>
           </table>
         </div>

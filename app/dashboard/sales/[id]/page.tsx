@@ -307,7 +307,22 @@ export default function SalesInvoiceDetailPage({ params }: PageProps) {
       render: (value: any) => value.name,
     },
     { key: 'quantity', label: 'الكمية' },
-    { key: 'giftQty', label: 'الكمية المجانية' },
+    {
+      key: 'giftQty',
+      label: 'الكمية المجانية',
+      render: (value: any, row: any) => {
+        const parts: string[] = [];
+        // Old gift system: same item as gift
+        if (row.giftQty && parseFloat(row.giftQty) > 0) {
+          parts.push(`${row.giftQty} (نفس الصنف)`);
+        }
+        // New gift system: separate gift item
+        if (row.giftItem && row.giftQuantity && parseFloat(row.giftQuantity) > 0) {
+          parts.push(`${row.giftQuantity} × ${row.giftItem.name}`);
+        }
+        return parts.length > 0 ? parts.join(' / ') : '-';
+      },
+    },
     {
       key: 'unitPrice',
       label: 'السعر',
