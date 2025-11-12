@@ -45,13 +45,18 @@ export default function CustomerDetailPage({ params }: PageProps) {
     return <div className="text-center py-8">العميل غير موجود</div>;
   }
 
+  // Filter out rejected invoices (just in case)
+  const validInvoices = customer.salesInvoices?.filter(
+    (invoice: any) => invoice.paymentConfirmationStatus !== 'REJECTED'
+  ) || [];
+
   // Calculate outstanding balance (accounts receivable)
   const calculateOutstanding = () => {
-    if (!customer.salesInvoices || customer.salesInvoices.length === 0) {
+    if (!validInvoices || validInvoices.length === 0) {
       return { accountsReceivable: 0, openingBalance: 0, netOutstanding: 0 };
     }
     
-    const accountsReceivable = customer.salesInvoices.reduce((total: number, invoice: any) => {
+    const accountsReceivable = validInvoices.reduce((total: number, invoice: any) => {
       const invoiceTotal = parseFloat(invoice.total);
       const paidAmount = parseFloat(invoice.paidAmount);
       const remaining = invoiceTotal - paidAmount;
@@ -72,14 +77,14 @@ export default function CustomerDetailPage({ params }: PageProps) {
   const outstanding = calculateOutstanding();
 
   // Calculate total sales
-  const totalSales = customer.salesInvoices?.reduce((total: number, invoice: any) => {
+  const totalSales = validInvoices.reduce((total: number, invoice: any) => {
     return total + parseFloat(invoice.total);
-  }, 0) || 0;
+  }, 0);
 
   // Calculate total paid
-  const totalPaid = customer.salesInvoices?.reduce((total: number, invoice: any) => {
+  const totalPaid = validInvoices.reduce((total: number, invoice: any) => {
     return total + parseFloat(invoice.paidAmount);
-  }, 0) || 0;
+  }, 0);
 
   const invoiceColumns = [
     { key: 'invoiceNumber', label: 'رقم الفاتورة' },
@@ -242,12 +247,12 @@ export default function CustomerDetailPage({ params }: PageProps) {
         </Card>
 
         {/* Recent Invoices */}
-        {customer.salesInvoices && customer.salesInvoices.length > 0 ? (
+        {validInvoices && validInvoices.length > 0 ? (
           <Card>
-            <h3 className="text-xl font-semibold mb-4">الفواتير ({customer.salesInvoices.length})</h3>
+            <h3 className="text-xl font-semibold mb-4">الفواتير ({validInvoices.length})</h3>
             <Table 
               columns={invoiceColumns} 
-              data={customer.salesInvoices}
+              data={validInvoices}
               onRowClick={(row) => router.push(`/dashboard/sales/${row.id}`)}
             />
           </Card>

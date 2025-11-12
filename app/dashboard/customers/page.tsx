@@ -15,6 +15,8 @@ export default function CustomersPage() {
   const { user } = useUser();
   const router = useRouter();
   const [customers, setCustomers] = useState<any[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -51,12 +53,28 @@ export default function CustomersPage() {
       
       const data = await api.getCustomers(params);
       setCustomers(data);
+      setFilteredCustomers(data);
     } catch (error) {
       console.error('Error loading customers:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Filter customers based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredCustomers(customers);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = customers.filter((customer) =>
+        customer.name?.toLowerCase().includes(query) ||
+        customer.phone?.toLowerCase().includes(query) ||
+        customer.address?.toLowerCase().includes(query)
+      );
+      setFilteredCustomers(filtered);
+    }
+  }, [searchQuery, customers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,9 +205,17 @@ export default function CustomersPage() {
       )}
 
       <Card>
+        <div className="mb-4">
+          <Input
+            label="بحث"
+            placeholder="ابحث بالاسم، الهاتف، أو العنوان..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
         <Table 
           columns={columns} 
-          data={customers}
+          data={filteredCustomers}
           onRowClick={(row) => router.push(`/dashboard/customers/${row.id}`)}
         />
       </Card>

@@ -13,6 +13,8 @@ export default function SuppliersPage() {
   const { user } = useUser();
   const router = useRouter();
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [filteredSuppliers, setFilteredSuppliers] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -29,12 +31,28 @@ export default function SuppliersPage() {
     try {
       const data = await api.getSuppliers();
       setSuppliers(data);
+      setFilteredSuppliers(data);
     } catch (error) {
       console.error('Error loading suppliers:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  // Filter suppliers based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredSuppliers(suppliers);
+    } else {
+      const query = searchQuery.toLowerCase();
+      const filtered = suppliers.filter((supplier) =>
+        supplier.name?.toLowerCase().includes(query) ||
+        supplier.phone?.toLowerCase().includes(query) ||
+        supplier.address?.toLowerCase().includes(query)
+      );
+      setFilteredSuppliers(filtered);
+    }
+  }, [searchQuery, suppliers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,9 +120,17 @@ export default function SuppliersPage() {
       )}
 
       <Card>
+        <div className="mb-4">
+          <Input
+            label="بحث"
+            placeholder="ابحث بالاسم، الهاتف، أو العنوان..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
         <Table 
           columns={columns} 
-          data={suppliers}
+          data={filteredSuppliers}
           onRowClick={(row) => router.push(`/dashboard/suppliers/${row.id}`)}
         />
       </Card>
