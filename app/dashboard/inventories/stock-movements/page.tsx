@@ -73,7 +73,21 @@ export default function StockMovementsPage() {
       if (filters.section) params.section = filters.section;
 
       const data = await api.getStockMovements(params);
-      setReportData(data);
+      
+      // Process data to add currentStock and isLastDate to each movement
+      const processedData = {
+        ...data,
+        items: data.items.map((item: any) => ({
+          ...item,
+          movements: item.movements.map((movement: any, index: number, movements: any[]) => ({
+            ...movement,
+            currentStock: item.currentStock,
+            isLastDate: index === movements.length - 1, // Mark the last date in the range
+          })),
+        })),
+      };
+      
+      setReportData(processedData);
     } catch (error: any) {
       console.error('Error loading report:', error);
       alert(error.message || 'فشل تحميل التقرير');
@@ -185,9 +199,21 @@ export default function StockMovementsPage() {
     {
       key: 'closingBalance',
       label: 'رصيد ختامي',
-      render: (value: string, row: any) => (
-        <span className="font-bold">{formatNumber(value)}</span>
-      ),
+      render: (value: string, row: any) => {
+        const closingBalance = parseFloat(value);
+        const currentStock = parseFloat(row.currentStock || '0');
+        // Only check mismatch for the last date in the range (most recent date)
+        const isMismatch = row.isLastDate && Math.abs(closingBalance - currentStock) > 0.01; // Allow small floating point differences
+        
+        return (
+          <span className={`font-bold ${isMismatch ? 'text-red-600 bg-red-50 px-2 py-1 rounded' : ''}`}>
+            {formatNumber(value)}
+            {isMismatch && (
+              <span className="ml-2 text-xs text-red-600">⚠️ لا يطابق الرصيد الحالي ({formatNumber(row.currentStock)})</span>
+            )}
+          </span>
+        );
+      },
     },
   ];
 
@@ -278,14 +304,26 @@ export default function StockMovementsPage() {
             </div>
           </div>
 
-          {reportData.items.map((item: any) => (
-            <Card key={item.itemId} className="mb-6 print-break-inside-avoid">
-              <h3 className="text-xl font-semibold mb-4">
-                {item.itemName} - {sectionLabels[item.section]}
-              </h3>
-              <Table columns={movementColumns} data={item.movements} />
-            </Card>
-          ))}
+          {reportData.items.map((item: any) => {
+            // Check if there's a mismatch for this item
+            const lastMovement = item.movements[item.movements.length - 1];
+            const hasMismatch = lastMovement && 
+              Math.abs(parseFloat(lastMovement.closingBalance) - parseFloat(item.currentStock || '0')) > 0.01;
+            
+            return (
+              <Card key={item.itemId} className={`mb-6 print-break-inside-avoid ${hasMismatch ? 'border-red-300 border-2' : ''}`}>
+                <h3 className="text-xl font-semibold mb-4">
+                  {item.itemName} - {sectionLabels[item.section]}
+                  {hasMismatch && (
+                    <span className="ml-2 text-sm font-normal text-red-600">
+                      ⚠️ رصيد ختامي لا يطابق الرصيد الحالي ({formatNumber(item.currentStock)})
+                    </span>
+                  )}
+                </h3>
+                <Table columns={movementColumns} data={item.movements} />
+              </Card>
+            );
+          })}
         </>
       )}
 
