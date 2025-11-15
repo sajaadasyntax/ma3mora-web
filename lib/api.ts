@@ -106,6 +106,12 @@ export const api = {
     }),
   
   getCustomer: (id: string) => fetchAPI(`/customers/${id}`),
+  
+  updateCustomer: (id: string, data: any) =>
+    fetchAPI(`/customers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 
   // Suppliers
   getSuppliers: () => fetchAPI('/suppliers'),

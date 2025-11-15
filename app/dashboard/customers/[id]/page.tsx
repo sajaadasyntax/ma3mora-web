@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { useUser } from '@/lib/userContext';
 import Card from '@/components/Card';
 import Table from '@/components/Table';
 import Button from '@/components/Button';
+import Input from '@/components/Input';
+import Select from '@/components/Select';
 import { formatCurrency, formatDateTime, customerTypeLabels, sectionLabels, paymentStatusLabels } from '@/lib/utils';
 import { generateCustomerReportPDF } from '@/lib/pdfUtils';
 
@@ -17,8 +20,18 @@ interface PageProps {
 
 export default function CustomerDetailPage({ params }: PageProps) {
   const router = useRouter();
+  const { user } = useUser();
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    type: 'WHOLESALE' as 'WHOLESALE' | 'RETAIL' | 'AGENT',
+    division: 'GROCERY' as 'GROCERY' | 'BAKERY',
+    phone: '',
+    address: '',
+  });
 
   useEffect(() => {
     loadCustomer();
@@ -28,12 +41,37 @@ export default function CustomerDetailPage({ params }: PageProps) {
     try {
       const data = await api.getCustomer(params.id);
       setCustomer(data);
+      // Initialize edit form data
+      setEditFormData({
+        name: data.name || '',
+        type: data.type || 'WHOLESALE',
+        division: data.division || 'GROCERY',
+        phone: data.phone || '',
+        address: data.address || '',
+      });
     } catch (error) {
       console.error('Error loading customer:', error);
       alert('فشل تحميل بيانات العميل');
       router.push('/dashboard/customers');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSubmitting(true);
+      await api.updateCustomer(params.id, editFormData);
+      // Reload customer data to get full object with relationships
+      await loadCustomer();
+      setShowEditModal(false);
+      alert('تم تحديث بيانات العميل بنجاح');
+    } catch (error: any) {
+      console.error('Error updating customer:', error);
+      alert(error.message || 'فشل تحديث بيانات العميل');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -142,7 +180,15 @@ export default function CustomerDetailPage({ params }: PageProps) {
             ← رجوع
           </Button>
         </div>
-        <div>
+        <div className="flex gap-2">
+          {user?.role === 'MANAGER' && (
+            <Button
+              onClick={() => setShowEditModal(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              ✏️ تعديل بيانات العميل
+            </Button>
+          )}
           <Button
             onClick={() => generateCustomerReportPDF(customer)}
             className="bg-blue-600 hover:bg-blue-700"
@@ -262,6 +308,78 @@ export default function CustomerDetailPage({ params }: PageProps) {
           </Card>
         )}
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-2xl m-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold mb-4">تعديل بيانات العميل</h2>
+              <form onSubmit={handleEditSubmit}>
+                <Input
+                  label="اسم العميل"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  required
+                />
+
+                <Select
+                  label="نوع العميل"
+                  value={editFormData.type}
+                  onChange={(e) => setEditFormData({ ...editFormData, type: e.target.value as 'WHOLESALE' | 'RETAIL' | 'AGENT' })}
+                  options={[
+                    { value: 'WHOLESALE', label: 'جملة' },
+                    { value: 'RETAIL', label: 'قطاعي' },
+                    { value: 'AGENT', label: 'وكيل' },
+                  ]}
+                  required
+                />
+
+                <Select
+                  label="القسم"
+                  value={editFormData.division}
+                  onChange={(e) => setEditFormData({ ...editFormData, division: e.target.value as 'GROCERY' | 'BAKERY' })}
+                  options={[
+                    { value: 'GROCERY', label: 'بقالة' },
+                    { value: 'BAKERY', label: 'أفران' },
+                  ]}
+                  required
+                />
+
+                <Input
+                  label="رقم الهاتف"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                />
+
+                <Input
+                  label="العنوان"
+                  value={editFormData.address}
+                  onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                />
+
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    type="submit"
+                    disabled={submitting}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {submitting ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setShowEditModal(false)}
+                    disabled={submitting}
+                  >
+                    إلغاء
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
