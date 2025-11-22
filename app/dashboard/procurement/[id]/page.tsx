@@ -542,13 +542,14 @@ export default function ProcOrderDetailPage({ params }: PageProps) {
       render: (value: any, row: any) => {
         const itemId = row.itemId;
         const received = receivedQuantities[itemId] || 0;
-        const giftQty = parseFloat(row.giftQty?.toString() || '0');
         const orderedQty = parseFloat(value?.toString() || '0');
-        const giftQtyNew = row.giftQuantity ? parseFloat(row.giftQuantity.toString()) : 0;
+        const giftQty = parseFloat(row.giftQty?.toString() || '0'); // Old system: separate quantity to receive
+        const giftQtyNew = row.giftQuantity ? parseFloat(row.giftQuantity.toString()) : 0; // New system: separate item
+        // For old system: total ordered includes giftQty as a separate quantity
         const totalOrdered = orderedQty + giftQty;
         const pending = Math.max(0, totalOrdered - received);
         
-        // Handle gift item separately
+        // Handle gift item separately (new system - separate item)
         const giftReceived = row.giftItemId ? (receivedQuantities[row.giftItemId] || 0) : 0;
         const giftPending = Math.max(0, giftQtyNew - giftReceived);
         
